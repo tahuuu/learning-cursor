@@ -56,6 +56,26 @@
       </section>
     </main>
 
+    <!-- Day modal -->
+    <div id="dayModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="dayModalTitle" hidden>
+      <div class="modal__backdrop" data-close="true"></div>
+      <div class="modal__content" role="document">
+        <div class="modal__header">
+          <h3 id="dayModalTitle" class="modal__title"></h3>
+          <button id="closeDayModal" class="btn btn--ghost" aria-label="Close">✕</button>
+        </div>
+        <div class="modal__body">
+          <div id="dayModalDate" class="events__date"></div>
+          <ul id="dayModalList" class="events__list"></ul>
+          <form id="dayModalForm" class="events__form" autocomplete="off">
+            <label class="visually-hidden" for="dayModalInput">Add event</label>
+            <input id="dayModalInput" class="input" type="text" placeholder="Add an event and press Enter" aria-label="Event text" required />
+            <button type="submit" class="btn btn--primary">Add</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <footer class="app-footer">
       <p>Data is stored locally in your browser.</p>
     </footer>

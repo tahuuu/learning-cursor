@@ -73,6 +73,14 @@
   const eventsList = document.getElementById("eventsList");
   const eventForm = document.getElementById("eventForm");
   const eventTextInput = document.getElementById("eventText");
+  // Modal elements
+  const dayModal = document.getElementById("dayModal");
+  const dayModalTitle = document.getElementById("dayModalTitle");
+  const dayModalDate = document.getElementById("dayModalDate");
+  const dayModalList = document.getElementById("dayModalList");
+  const dayModalInput = document.getElementById("dayModalInput");
+  const dayModalForm = document.getElementById("dayModalForm");
+  const closeDayModalBtn = document.getElementById("closeDayModal");
 
   function render() {
     renderToolbar();
@@ -100,29 +108,54 @@
     const today = new Date();
 
     for (let d = new Date(startGridDate); d <= endGridDate; d.setDate(d.getDate() + 1)) {
+      const day = new Date(d.getTime());
       const cell = document.createElement("div");
       cell.className = "day-cell";
       cell.setAttribute("role", "gridcell");
       cell.tabIndex = 0;
 
-      const isOtherMonth = d.getMonth() !== state.visibleMonthDate.getMonth();
-      const isToday = isSameDay(d, today);
+      const isOtherMonth = day.getMonth() !== state.visibleMonthDate.getMonth();
+      const isToday = isSameDay(day, today);
+      const isSelected = isSameDay(day, state.selectedDate);
+      if (isSelected) {
+        cell.classList.add("day-cell--selected");
+      }
 
       const header = document.createElement("div");
       header.className = "day-cell__header";
 
       const dateLabel = document.createElement("div");
       dateLabel.className = "day-cell__date" + (isOtherMonth ? " day-cell__other-month" : "") + (isToday ? " day-cell__today" : "");
-      dateLabel.textContent = String(d.getDate());
+      dateLabel.textContent = String(day.getDate());
 
       const eventsPill = document.createElement("div");
       eventsPill.className = "pill";
-      const iso = toISODateString(d);
+      const iso = toISODateString(day);
       const count = getEventsForDate(iso, loadAllEvents()).length;
       eventsPill.textContent = count === 1 ? "1 event" : `${count} events`;
 
+      const addBtn = document.createElement("button");
+      addBtn.type = "button";
+      addBtn.className = "btn btn--ghost btn--xs";
+      addBtn.setAttribute("aria-label", "Add event on this day");
+      addBtn.textContent = "+";
+
+      addBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const targetDate = new Date(day.getTime());
+        const isoTarget = toISODateString(targetDate);
+        const text = window.prompt(`Add event for ${isoTarget}`);
+        if (text && text.trim()) {
+          addEvent(isoTarget, text.trim());
+          state.selectedDate = targetDate;
+          state.visibleMonthDate = getStartOfMonth(targetDate);
+          render();
+        }
+      });
+
       header.appendChild(dateLabel);
       header.appendChild(eventsPill);
+      header.appendChild(addBtn);
 
       const eventsPreview = document.createElement("div");
       const events = getEventsForDate(iso, loadAllEvents()).slice(0, 2);
@@ -138,14 +171,16 @@
       cell.appendChild(eventsPreview);
 
       cell.addEventListener("click", () => {
-        state.selectedDate = new Date(d);
-        renderSelectedDay();
+        state.selectedDate = new Date(day.getTime());
+        render();
+        openDayModal(state.selectedDate, cell);
       });
       cell.addEventListener("keydown", (ev) => {
         if (ev.key === "Enter" || ev.key === " ") {
           ev.preventDefault();
-          state.selectedDate = new Date(d);
-          renderSelectedDay();
+          state.selectedDate = new Date(day.getTime());
+          render();
+          openDayModal(state.selectedDate, cell);
         }
       });
 
@@ -242,6 +277,75 @@
     addEvent(iso, text);
     render();
   });
+
+  function openDayModal(date) {
+    if (!dayModal) return;
+    dayModal.removeAttribute("hidden");
+    document.body.style.overflow = "hidden";
+    renderDayModal(date);
+  }
+  function closeDayModal() {
+    if (!dayModal) return;
+    dayModal.setAttribute("hidden", "");
+    document.body.style.overflow = "";
+  }
+  function renderDayModal(date) {
+    const iso = toISODateString(date);
+    if (dayModalTitle) dayModalTitle.textContent = `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    if (dayModalDate) dayModalDate.textContent = iso;
+    if (dayModalList) {
+      dayModalList.innerHTML = "";
+      const events = getEventsForDate(iso, loadAllEvents());
+      for (const e of events) {
+        const li = document.createElement("li");
+        const text = document.createElement("span");
+        text.textContent = e.text;
+        text.className = "event-chip";
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "btn btn--danger";
+        removeBtn.type = "button";
+        removeBtn.setAttribute("aria-label", "Remove event");
+        removeBtn.textContent = "Delete";
+        removeBtn.addEventListener("click", () => {
+          removeEvent(iso, e.id);
+          render();
+          renderDayModal(date);
+        });
+        li.appendChild(text);
+        li.appendChild(removeBtn);
+        dayModalList.appendChild(li);
+      }
+    }
+    if (dayModalInput) {
+      dayModalInput.value = "";
+      dayModalInput.placeholder = `Add an event for ${iso}`;
+      setTimeout(() => dayModalInput.focus(), 0);
+    }
+  }
+
+  if (closeDayModalBtn) closeDayModalBtn.addEventListener("click", closeDayModal);
+  if (dayModal) {
+    dayModal.addEventListener("click", (ev) => {
+      const target = ev.target;
+      if (target && target.getAttribute && target.getAttribute("data-close") === "true") {
+        closeDayModal();
+      }
+    });
+    window.addEventListener("keydown", (ev) => {
+      if (!dayModal.hasAttribute("hidden") && ev.key === "Escape") closeDayModal();
+    });
+  }
+  if (dayModalForm && dayModalInput) {
+    dayModalForm.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      const text = dayModalInput.value.trim();
+      if (!text) return;
+      const iso = toISODateString(state.selectedDate);
+      addEvent(iso, text);
+      render();
+      renderDayModal(state.selectedDate);
+    });
+  }
 
   render();
 })();

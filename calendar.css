@@ -1,14 +1,14 @@
 :root {
-  /* Pastel palette */
-  --bg: #fcfcff;                 /* near-white with a cool tint */
+  /* Pink pastel palette */
+  --bg: #fff7fb;                 /* rose-50 */
   --surface: #ffffff;            /* white cards */
-  --surface-2: #f4f6ff;          /* very light indigo tint */
-  --text: #334155;               /* slate-700 */
-  --muted: #64748b;              /* slate-500 */
-  --primary: #a5b4fc;            /* indigo-300 pastel */
-  --primary-contrast: #1e293b;   /* slate-800 for legibility */
-  --ring: #c7d2fe;               /* indigo-200 */
-  --danger: #fca5a5;             /* red-300 pastel */
+  --surface-2: #fff1f7;          /* soft pink */
+  --text: #3f2d36;               /* deep rose/brown for contrast */
+  --muted: #8b5e6b;              /* muted rose */
+  --primary: #f9a8d4;            /* pink-300 */
+  --primary-contrast: #3f2d36;   /* readable on pink */
+  --ring: #fbcfe8;               /* pink-200 */
+  --danger: #fda4af;             /* rose-300 */
 }
 
 * { box-sizing: border-box; }
@@ -17,7 +17,8 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   color: var(--text);
-  background: linear-gradient(180deg, #f7f8ff 0%, #fdfcff 50%, #ffffff 100%);
+  /* Pink pastel comfortable background */
+  background: radial-gradient(900px 600px at 20% -10%, #ffeaf4 0%, #fff7fb 50%, #fffdfd 100%);
 }
 
 .app-header, .app-footer {
@@ -91,13 +92,19 @@ body {
 .day-cell__header { display: flex; align-items: center; justify-content: space-between; }
 .day-cell__date { font-size: 13px; color: var(--muted); }
 .day-cell__today {
-  color: #6366f1; /* indigo-500 for emphasis */
-  background: #eef2ff;
+  color: #be185d; /* rose-700 */
+  background: #fff1f7;
   border-radius: 6px;
   padding: 2px 6px;
   font-weight: 600;
 }
 .day-cell__other-month { opacity: 0.5; }
+
+.day-cell--selected {
+  outline: 2px solid #c7d2fe; /* ring */
+  outline-offset: -2px;
+  background: #fafaff;
+}
 
 .pill {
   display: inline-flex;
@@ -105,8 +112,8 @@ body {
   gap: 6px;
   padding: 4px 8px;
   border-radius: 999px;
-  background: #eef2ff;
-  color: #6366f1;
+  background: #ffe4ef;
+  color: #be185d;
   font-size: 11px;
 }
 
@@ -150,14 +157,23 @@ body {
 }
 .btn:hover { border-color: #cbd5e1; background: #f1f5f9; }
 .btn:focus { outline: 2px solid var(--ring); outline-offset: 2px; }
-.btn--primary { background: var(--primary); color: var(--primary-contrast); border-color: #e0e7ff; }
-.btn--danger { background: var(--danger); color: #7f1d1d; border-color: #fee2e2; }
+.btn--primary { background: var(--primary); color: var(--primary-contrast); border-color: #fbcfe8; }
+.btn--danger { background: var(--danger); color: #7f1d1d; border-color: #ffe4e6; }
+
+/* Subtle tiny ghost button for per-day add (+) */
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: #64748b;
+}
+.btn--ghost:hover { color: #475569; background: #f1f5f9; border-color: #e5e7eb; }
+.btn--xs { padding: 2px 6px; font-size: 12px; border-radius: 6px; }
 
 .input, .month-input {
   width: 100%;
   appearance: none;
   border: 1px solid #e5e7eb;
-  background: #ffffff;
+  background: #fffdfd;
   color: #334155;
   border-radius: 8px;
   padding: 8px 10px;
