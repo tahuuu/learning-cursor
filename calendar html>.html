@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Simple Calendar</title>
+    <link rel="stylesheet" href="./calendar.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <h1 class="app-title">Simple Calendar</h1>
+    </header>
+
+    <main class="app-main" aria-label="Calendar" id="app-root">
+      <section class="calendar" aria-labelledby="calendar-heading">
+        <div class="calendar__toolbar">
+          <div class="toolbar__left">
+            <button id="prevMonthBtn" class="btn" aria-label="Previous month">◀</button>
+            <button id="todayBtn" class="btn" aria-label="Go to today">Today</button>
+            <button id="nextMonthBtn" class="btn" aria-label="Next month">▶</button>
+          </div>
+          <div class="toolbar__center">
+            <h2 id="calendar-heading" class="calendar__title" aria-live="polite" aria-atomic="true"></h2>
+          </div>
+          <div class="toolbar__right">
+            <label class="visually-hidden" for="jumpToMonth">Jump to month</label>
+            <input id="jumpToMonth" type="month" class="month-input" aria-label="Jump to month" />
+          </div>
+        </div>
+
+        <div class="calendar__weekdays" aria-hidden="true">
+          <div>Sun</div>
+          <div>Mon</div>
+          <div>Tue</div>
+          <div>Wed</div>
+          <div>Thu</div>
+          <div>Fri</div>
+          <div>Sat</div>
+        </div>
+
+        <div id="calendarGrid" class="calendar__grid" role="grid" aria-readonly="true" aria-labelledby="calendar-heading"></div>
+      </section>
+
+      <section class="events" aria-labelledby="events-heading">
+        <h3 id="events-heading" class="events__title">Selected Day</h3>
+        <div id="selectedDateLabel" class="events__date"></div>
+        <ul id="eventsList" class="events__list"></ul>
+        <form id="eventForm" class="events__form" autocomplete="off">
+          <label class="visually-hidden" for="eventText">Add event</label>
+          <input id="eventText" name="eventText" class="input" type="text" placeholder="Add an event and press Enter" aria-label="Event text" required />
+          <button type="submit" class="btn btn--primary">Add</button>
+        </form>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <p>Data is stored locally in your browser.</p>
+    </footer>
+
+    <script src="./calendar.js"></script>
+  </body>
+  </html>
