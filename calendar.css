@@ -1,14 +1,14 @@
 :root {
-  /* Pink pastel palette */
-  --bg: #fff7fb;                 /* rose-50 */
-  --surface: #ffffff;            /* white cards */
-  --surface-2: #fff1f7;          /* soft pink */
-  --text: #3f2d36;               /* deep rose/brown for contrast */
-  --muted: #8b5e6b;              /* muted rose */
-  --primary: #f9a8d4;            /* pink-300 */
-  --primary-contrast: #3f2d36;   /* readable on pink */
-  --ring: #fbcfe8;               /* pink-200 */
-  --danger: #fda4af;             /* rose-300 */
+  /* Friendly dark mode (Cursor-like) */
+  --bg: #0b0f14;
+  --surface: #11161d;
+  --surface-2: #161c25;
+  --text: #e6edf3;
+  --muted: #9aa7b3;
+  --primary: #7aa2ff;           /* softer blue */
+  --primary-contrast: #0b0f14;
+  --ring: #3b6dcc;
+  --danger: #ff8692;
 }
 
 * { box-sizing: border-box; }
@@ -17,8 +17,7 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   color: var(--text);
-  /* Pink pastel comfortable background */
-  background: radial-gradient(900px 600px at 20% -10%, #ffeaf4 0%, #fff7fb 50%, #fffdfd 100%);
+  background: radial-gradient(1200px 800px at 20% -10%, #192330 0%, #0b0f14 60%, #0b0f14 100%);
 }
 
 .app-header, .app-footer {
@@ -41,10 +40,10 @@ body {
 
 .calendar {
   background: var(--surface);
-  border: 1px solid #e5e7eb; /* light border */
+  border: 1px solid #222b36;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
 .calendar__toolbar {
@@ -53,7 +52,7 @@ body {
   justify-content: space-between;
   padding: 12px;
   gap: 8px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #222b36;
   background: linear-gradient(180deg, var(--surface-2), transparent);
 }
 
@@ -63,7 +62,7 @@ body {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 1px;
-  background: #e5e7eb;
+  background: #222b36;
 }
 .calendar__weekdays > div {
   background: var(--surface);
@@ -77,7 +76,7 @@ body {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 1px;
-  background: #e5e7eb;
+  background: #222b36;
 }
 
 .day-cell {
@@ -89,21 +88,29 @@ body {
   gap: 6px;
 }
 
-.day-cell__header { display: flex; align-items: center; justify-content: space-between; }
-.day-cell__date { font-size: 13px; color: var(--muted); }
+.day-cell__header { display: block; }
+.day-cell__date {
+  font-size: 16px;
+  line-height: 1.2;
+  color: #f1f5f9; /* higher contrast on dark */
+  font-weight: 600;
+}
 .day-cell__today {
-  color: #be185d; /* rose-700 */
-  background: #fff1f7;
+  color: var(--primary);
+  background: #18243a;
   border-radius: 6px;
   padding: 2px 6px;
   font-weight: 600;
 }
 .day-cell__other-month { opacity: 0.5; }
+.day-cell__controls { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.day-cell__controls .pill { flex: 1; }
+.day-cell__controls .btn--xs { flex: none; }
 
 .day-cell--selected {
-  outline: 2px solid #c7d2fe; /* ring */
+  outline: 2px solid var(--ring);
   outline-offset: -2px;
-  background: #fafaff;
+  background: #121a27;
 }
 
 .pill {
@@ -112,14 +119,14 @@ body {
   gap: 6px;
   padding: 4px 8px;
   border-radius: 999px;
-  background: #ffe4ef;
-  color: #be185d;
+  background: #1b2740;
+  color: var(--muted);
   font-size: 11px;
 }
 
 .event-chip {
   display: block;
-  background: #f1f5f9; /* slate-100 */
+  background: #1a263d;
   color: var(--text);
   padding: 4px 6px;
   border-radius: 8px;
@@ -132,11 +139,11 @@ body {
 
 .events {
   background: var(--surface);
-  border: 1px solid #e5e7eb;
+  border: 1px solid #222b36;
   border-radius: 12px;
   padding: 12px;
   height: fit-content;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 .events__title { margin: 0 0 4px 0; font-size: 16px; }
 .events__date { color: var(--muted); margin-bottom: 8px; font-size: 13px; }
@@ -147,34 +154,34 @@ body {
 
 .btn {
   appearance: none;
-  border: 1px solid #e5e7eb;
-  background: #f8fafc; /* slate-50 */
-  color: #334155;
+  border: 1px solid #222b36;
+  background: #192435;
+  color: var(--text);
   border-radius: 8px;
   padding: 6px 10px;
   font-size: 13px;
   cursor: pointer;
 }
-.btn:hover { border-color: #cbd5e1; background: #f1f5f9; }
+.btn:hover { border-color: var(--ring); background: #1a263a; }
 .btn:focus { outline: 2px solid var(--ring); outline-offset: 2px; }
-.btn--primary { background: var(--primary); color: var(--primary-contrast); border-color: #fbcfe8; }
-.btn--danger { background: var(--danger); color: #7f1d1d; border-color: #ffe4e6; }
+.btn--primary { background: var(--primary); color: var(--primary-contrast); border-color: transparent; }
+.btn--danger { background: var(--danger); color: #2b0e0e; border-color: transparent; }
 
 /* Subtle tiny ghost button for per-day add (+) */
 .btn--ghost {
   background: transparent;
   border-color: transparent;
-  color: #64748b;
+  color: var(--muted);
 }
-.btn--ghost:hover { color: #475569; background: #f1f5f9; border-color: #e5e7eb; }
+.btn--ghost:hover { color: var(--text); background: #1a263a; border-color: #222b36; }
 .btn--xs { padding: 2px 6px; font-size: 12px; border-radius: 6px; }
 
 .input, .month-input {
   width: 100%;
   appearance: none;
-  border: 1px solid #e5e7eb;
-  background: #fffdfd;
-  color: #334155;
+  border: 1px solid #222b36;
+  background: #0f1624;
+  color: var(--text);
   border-radius: 8px;
   padding: 8px 10px;
   font-size: 14px;
@@ -195,3 +202,31 @@ body {
 }
 
 .app-footer { color: var(--muted); font-size: 12px; text-align: center; }
+
+/* Modal positioning and look tweaks for floating near cell */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+.modal[hidden] { display: none; }
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+}
+.modal__content {
+  position: relative;
+  width: min(520px, 92vw);
+  margin: 8vh auto 0 auto;
+  background: var(--surface);
+  border: 1px solid #222b36;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+}
+.modal__header { display: flex; align-items: center; justify-content: space-between; padding: 12px 12px 0 12px; }
+.modal__title { margin: 0; font-size: 18px; font-weight: 600; }
+.modal__body { padding: 12px; }

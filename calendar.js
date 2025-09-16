@@ -154,8 +154,11 @@
       });
 
       header.appendChild(dateLabel);
-      header.appendChild(eventsPill);
-      header.appendChild(addBtn);
+
+      const controls = document.createElement("div");
+      controls.className = "day-cell__controls";
+      controls.appendChild(eventsPill);
+      controls.appendChild(addBtn);
 
       const eventsPreview = document.createElement("div");
       const events = getEventsForDate(iso, loadAllEvents()).slice(0, 2);
@@ -168,6 +171,7 @@
       }
 
       cell.appendChild(header);
+      cell.appendChild(controls);
       cell.appendChild(eventsPreview);
 
       cell.addEventListener("click", () => {
@@ -278,11 +282,28 @@
     render();
   });
 
-  function openDayModal(date) {
+  function openDayModal(date, anchorEl) {
     if (!dayModal) return;
     dayModal.removeAttribute("hidden");
     document.body.style.overflow = "hidden";
     renderDayModal(date);
+    // Position near the clicked cell (popover-like)
+    if (anchorEl && dayModal) {
+      const rect = anchorEl.getBoundingClientRect();
+      const content = dayModal.querySelector(".modal__content");
+      if (content) {
+        const viewportPadding = 8;
+        const contentWidth = Math.min(520, window.innerWidth * 0.92);
+        let top = rect.top + window.scrollY + rect.height + 8;
+        let left = rect.left + window.scrollX + rect.width / 2 - contentWidth / 2;
+        left = Math.max(viewportPadding, Math.min(left, window.scrollX + window.innerWidth - contentWidth - viewportPadding));
+        content.style.width = contentWidth + "px";
+        content.style.margin = "0";
+        content.style.position = "absolute";
+        content.style.top = `${top}px`;
+        content.style.left = `${left}px`;
+      }
+    }
   }
   function closeDayModal() {
     if (!dayModal) return;
