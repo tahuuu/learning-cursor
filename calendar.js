@@ -67,6 +67,8 @@
   const nextBtn = document.getElementById("nextMonthBtn");
   const todayBtn = document.getElementById("todayBtn");
   const jumpInput = document.getElementById("jumpToMonth");
+  const goToDateInput = document.getElementById("goToDate");
+  const goToDateBtn = document.getElementById("goToDateBtn");
   const selectedDateLabel = document.getElementById("selectedDateLabel");
   const eventsList = document.getElementById("eventsList");
   const eventForm = document.getElementById("eventForm");
@@ -203,6 +205,35 @@
     state.visibleMonthDate = new Date(y, m - 1, 1);
     render();
   });
+
+  function goToSpecificDate(isoStr) {
+    if (!isoStr) return;
+    const [yStr, mStr, dStr] = isoStr.split("-");
+    const y = Number(yStr);
+    const m = Number(mStr) - 1;
+    const d = Number(dStr);
+    if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return;
+    const target = new Date(y, m, d);
+    if (Number.isNaN(target.getTime())) return;
+    state.visibleMonthDate = getStartOfMonth(target);
+    state.selectedDate = target;
+    render();
+  }
+
+  if (goToDateBtn && goToDateInput) {
+    goToDateBtn.addEventListener("click", () => {
+      goToSpecificDate(goToDateInput.value);
+    });
+    goToDateInput.addEventListener("change", () => {
+      goToSpecificDate(goToDateInput.value);
+    });
+    goToDateInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        goToSpecificDate(goToDateInput.value);
+      }
+    });
+  }
   eventForm.addEventListener("submit", (ev) => {
     ev.preventDefault();
     const text = eventTextInput.value.trim();
