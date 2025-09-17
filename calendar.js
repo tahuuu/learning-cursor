@@ -36,7 +36,7 @@
     if (!hijri || hijri.year === 0) return ''; // Don't display anything if conversion failed
     const day = String(hijri.day).padStart(2, '0');
     // Handle potential missing month name, though with Intl it should be reliable
-    const monthName = HIJRI_MONTH_NAMES[hijri.month - 1] ? HIJRI_MONTH_NAMES[hijri.month - 1].substring(0, 3) : '';
+    const monthName = HIJRI_MONTH_NAMES[hijri.month - 1] ? HIJRI_MONTH_NAMES[hijri.month - 1] : '';
     return `${day} ${monthName} ${hijri.year}`;
   }
 
@@ -494,7 +494,9 @@
   }
   function renderDayModal(date) {
     const iso = toISODateString(date);
-    if (dayModalTitle) dayModalTitle.textContent = `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+    const hijriDate = gregorianToHijri(date);
+    const formattedHijri = formatHijriDate(hijriDate);
+    if (dayModalTitle) dayModalTitle.textContent = `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()} (${formattedHijri})`
     if (dayModalDate) dayModalDate.textContent = iso;
     if (dayModalList) {
       dayModalList.innerHTML = "";

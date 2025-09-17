@@ -94,7 +94,7 @@ body.modal-open .year-view {
 
 .day-cell {
   background: var(--surface);
-  min-height: 92px;
+  min-height: 120px;
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -110,7 +110,7 @@ body.modal-open .year-view {
   text-align: center;
 }
 .day-cell__hijri {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.1;
   color: var(--muted);
   text-align: center;
@@ -280,7 +280,7 @@ body.modal-open .year-view {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: min(400px, 85vw);
+  width: min(500px, 90vw);
   max-height: 80vh;
   background: var(--surface);
   border: 1px solid #222b36;
@@ -293,3 +293,15 @@ body.modal-open .year-view {
 .modal__header { display: flex; align-items: center; justify-content: space-between; padding: 12px 12px 0 12px; }
 .modal__title { margin: 0; font-size: 18px; font-weight: 600; }
 .modal__body { padding: 12px; }
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  font-size: 13px;
+  color: var(--muted);
+}

@@ -67,19 +67,25 @@
           <div id="dayModalDate" class="events__date"></div>
           <ul id="dayModalList" class="events__list"></ul>
           <form id="dayModalForm" class="events__form" autocomplete="off">
-            <label class="visually-hidden" for="dayModalInput">Add event</label>
-            <input id="dayModalInput" class="input" type="text" placeholder="Event title (optional time in title)" aria-label="Event text" required />
+            <div class="form-group">
+              <label for="dayModalInput">Event Title</label>
+              <input id="dayModalInput" class="input" type="text" placeholder="Event title (optional time in title)" aria-label="Event text" required />
+            </div>
             <div class="form-row">
-              <label class="visually-hidden" for="dayModalTime">Time</label>
-              <input id="dayModalTime" class="input" type="time" aria-label="Event time" />
-              <label class="visually-hidden" for="dayModalRepeat">Repeat</label>
-              <select id="dayModalRepeat" class="input" aria-label="Repeat">
-                <option value="none">Does not repeat</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-              </select>
+              <div class="form-group">
+                <label for="dayModalTime">Time</label>
+                <input id="dayModalTime" class="input" type="time" aria-label="Event time" />
+              </div>
+              <div class="form-group">
+                <label for="dayModalRepeat">Repeat</label>
+                <select id="dayModalRepeat" class="input" aria-label="Repeat">
+                  <option value="none">Does not repeat</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </div>
             </div>
             <button type="submit" class="btn btn--primary">Add</button>
           </form>
