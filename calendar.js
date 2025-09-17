@@ -594,5 +594,31 @@
     }
   }
 
+  const themeToggleBtn = document.getElementById("theme-toggle");
+  const themeLabel = document.getElementById("theme-label");
+
+  function applyTheme(theme) {
+    if (theme === 'light') {
+      document.body.classList.add('light-mode');
+      if (themeLabel) themeLabel.textContent = 'Light Mode';
+    } else {
+      document.body.classList.remove('light-mode');
+      if (themeLabel) themeLabel.textContent = 'Dark Mode';
+    }
+  }
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener("click", () => {
+      const isLight = document.body.classList.contains('light-mode');
+      const newTheme = isLight ? 'dark' : 'light';
+      localStorage.setItem('calendar_theme', newTheme);
+      applyTheme(newTheme);
+    });
+  }
+
+  // On page load, apply saved theme
+  const savedTheme = localStorage.getItem('calendar_theme') || 'dark';
+  applyTheme(savedTheme);
+
   render();
 })();
