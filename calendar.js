@@ -12,33 +12,32 @@
     "Ramadan", "Shawwal", "Dhu al-Qi'dah", "Dhu al-Hijjah"
   ];
 
-  // Hijri calendar calculation (Saudi Arabia method)
   function gregorianToHijri(gregorianDate) {
-    const year = gregorianDate.getFullYear();
-    const month = gregorianDate.getMonth() + 1;
-    const day = gregorianDate.getDate();
-    
-    // Convert to Julian day number
-    const a = Math.floor((14 - month) / 12);
-    const y = year + 4800 - a;
-    const m = month + 12 * a - 3;
-    const jd = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
-    
-    // Convert to Hijri
-    const hijriEpoch = 1948439.5; // July 16, 622 CE
-    const hijriYear = Math.floor((30 * (jd - hijriEpoch) + 10646) / 10631);
-    const hijriMonth = Math.min(12, Math.max(1, Math.floor((jd - 29 - (hijriYear - 1) * 354 - Math.floor((11 * hijriYear + 3) / 30)) / 29.5) + 1));
-    const hijriDay = jd - 29 - (hijriYear - 1) * 354 - Math.floor((11 * hijriYear + 3) / 30) - Math.floor(29.5 * (hijriMonth - 1)) + 1;
-    
-    return {
-      year: hijriYear,
-      month: hijriMonth,
-      day: Math.max(1, Math.floor(hijriDay))
-    };
+    try {
+      const parts = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric'
+      }).formatToParts(gregorianDate);
+
+      const year = parseInt(parts.find(p => p.type === 'year').value, 10);
+      const month = parseInt(parts.find(p => p.type === 'month').value, 10);
+      const day = parseInt(parts.find(p => p.type === 'day').value, 10);
+
+      return { year, month, day };
+    } catch (e) {
+      console.error("Hijri conversion failed", e);
+      // Fallback for environments that might not support umalqura calendar
+      return { year: 0, month: 0, day: 0 };
+    }
   }
 
   function formatHijriDate(hijri) {
-    return `${hijri.day} ${HIJRI_MONTH_NAMES[hijri.month - 1].substring(0, 3)} ${hijri.year}`;
+    if (!hijri || hijri.year === 0) return ''; // Don't display anything if conversion failed
+    const day = String(hijri.day).padStart(2, '0');
+    // Handle potential missing month name, though with Intl it should be reliable
+    const monthName = HIJRI_MONTH_NAMES[hijri.month - 1] ? HIJRI_MONTH_NAMES[hijri.month - 1].substring(0, 3) : '';
+    return `${day} ${monthName} ${hijri.year}`;
   }
 
   function getStartOfMonth(date) {
