@@ -8,7 +8,8 @@
   </head>
   <body>
     <header class="app-header">
-      <h1 class="app-title">Simple Calendar</h1>
+      <h1 class="app-title">Calendar Project by Dimas</h1>
+      <p class="app-subtitle">created with cursor</p>
     </header>
 
     <main class="app-main" aria-label="Calendar" id="app-root">
@@ -21,6 +22,11 @@
           </div>
           <div class="toolbar__center">
             <h2 id="calendar-heading" class="calendar__title" aria-live="polite" aria-atomic="true"></h2>
+            <div class="view-switcher">
+              <button id="viewMonthBtn" class="btn" type="button" aria-label="Month view">Month</button>
+              <button id="viewDayBtn" class="btn" type="button" aria-label="Day view">Day</button>
+              <button id="viewYearBtn" class="btn" type="button" aria-label="Year view">Year</button>
+            </div>
           </div>
           <div class="toolbar__right">
             <label class="visually-hidden" for="jumpToMonth">Jump to month</label>
@@ -31,7 +37,7 @@
           </div>
         </div>
 
-        <div class="calendar__weekdays" aria-hidden="true">
+        <div id="weekdaysHeader" class="calendar__weekdays" aria-hidden="true">
           <div>Sun</div>
           <div>Mon</div>
           <div>Tue</div>
@@ -42,18 +48,11 @@
         </div>
 
         <div id="calendarGrid" class="calendar__grid" role="grid" aria-readonly="true" aria-labelledby="calendar-heading"></div>
+
+        <div id="dayView" class="day-view" hidden></div>
+        <div id="yearView" class="year-view" hidden></div>
       </section>
 
-      <section class="events" aria-labelledby="events-heading">
-        <h3 id="events-heading" class="events__title">Selected Day</h3>
-        <div id="selectedDateLabel" class="events__date"></div>
-        <ul id="eventsList" class="events__list"></ul>
-        <form id="eventForm" class="events__form" autocomplete="off">
-          <label class="visually-hidden" for="eventText">Add event</label>
-          <input id="eventText" name="eventText" class="input" type="text" placeholder="Add an event and press Enter" aria-label="Event text" required />
-          <button type="submit" class="btn btn--primary">Add</button>
-        </form>
-      </section>
     </main>
 
     <!-- Day modal -->
@@ -69,7 +68,19 @@
           <ul id="dayModalList" class="events__list"></ul>
           <form id="dayModalForm" class="events__form" autocomplete="off">
             <label class="visually-hidden" for="dayModalInput">Add event</label>
-            <input id="dayModalInput" class="input" type="text" placeholder="Add an event and press Enter" aria-label="Event text" required />
+            <input id="dayModalInput" class="input" type="text" placeholder="Event title (optional time in title)" aria-label="Event text" required />
+            <div class="form-row">
+              <label class="visually-hidden" for="dayModalTime">Time</label>
+              <input id="dayModalTime" class="input" type="time" aria-label="Event time" />
+              <label class="visually-hidden" for="dayModalRepeat">Repeat</label>
+              <select id="dayModalRepeat" class="input" aria-label="Repeat">
+                <option value="none">Does not repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
             <button type="submit" class="btn btn--primary">Add</button>
           </form>
         </div>
