@@ -81,6 +81,7 @@
       id: crypto.randomUUID(),
       text,
       timeHour: typeof opts.timeHour === "number" ? opts.timeHour : null,
+      timeMinute: typeof opts.timeMinute === "number" ? opts.timeMinute : null,
       repeat: opts.repeat || "none",
       origin: isoDate
     };
@@ -107,6 +108,7 @@
       ...existing,
       text: typeof updates.text === "string" ? updates.text : existing.text,
       timeHour: updates.timeHour !== undefined ? updates.timeHour : existing.timeHour,
+      timeMinute: updates.timeMinute !== undefined ? updates.timeMinute : existing.timeMinute,
       repeat: updates.repeat || existing.repeat
     };
     list[idx] = updated;
@@ -151,8 +153,13 @@
     const combined = [...direct, ...extras];
     combined.sort((a, b) => {
       const ah = typeof a.timeHour === "number" ? a.timeHour : 99;
+      const am = typeof a.timeMinute === "number" ? a.timeMinute : 0;
       const bh = typeof b.timeHour === "number" ? b.timeHour : 99;
-      return ah - bh;
+      const bm = typeof b.timeMinute === "number" ? b.timeMinute : 0;
+      if (ah !== bh) {
+        return ah - bh;
+      }
+      return am - bm;
     });
     return combined;
   }
@@ -169,6 +176,7 @@
   const viewMonthBtn = document.getElementById("viewMonthBtn");
   const viewDayBtn = document.getElementById("viewDayBtn");
   const viewYearBtn = document.getElementById("viewYearBtn");
+  const syncBtn = document.getElementById("syncBtn");
   const dayViewEl = document.getElementById("dayView");
   const yearViewEl = document.getElementById("yearView");
   // Removed sidebar elements - now using modal only
@@ -180,6 +188,8 @@
   const dayModalInput = document.getElementById("dayModalInput");
   const dayModalForm = document.getElementById("dayModalForm");
   const closeDayModalBtn = document.getElementById("closeDayModal");
+  const dayModalTime = document.getElementById("dayModalTime");
+  const dayModalRepeat = document.getElementById("dayModalRepeat");
 
   const state = {
     visibleMonthDate: getStartOfMonth(new Date()),
@@ -189,24 +199,18 @@
 
   function render() {
     renderToolbar();
+
+    weekdaysHeader.hidden = state.view !== "month";
+    gridEl.hidden = state.view !== "month";
+    dayViewEl.hidden = state.view !== "day";
+    yearViewEl.hidden = state.view !== "year";
+
     if (state.view === "month") {
-      if (weekdaysHeader) weekdaysHeader.removeAttribute("hidden");
-      if (gridEl) gridEl.removeAttribute("hidden");
-      if (dayViewEl) dayViewEl.setAttribute("hidden", "");
-      if (yearViewEl) yearViewEl.setAttribute("hidden", "");
       renderGrid();
       renderSelectedDay();
     } else if (state.view === "day") {
-      if (weekdaysHeader) weekdaysHeader.setAttribute("hidden", "");
-      if (gridEl) gridEl.setAttribute("hidden", "");
-      if (yearViewEl) yearViewEl.setAttribute("hidden", "");
-      if (dayViewEl) dayViewEl.removeAttribute("hidden");
       renderDayView();
     } else if (state.view === "year") {
-      if (weekdaysHeader) weekdaysHeader.setAttribute("hidden", "");
-      if (gridEl) gridEl.setAttribute("hidden", "");
-      if (dayViewEl) dayViewEl.setAttribute("hidden", "");
-      if (yearViewEl) yearViewEl.removeAttribute("hidden");
       renderYearView();
     }
   }
@@ -225,14 +229,7 @@
     jumpInput.value = `${y}-${String(m + 1).padStart(2, "0")}`;
   }
 
-  function parseEventHour(text) {
-    const m = text.match(/^\s*(?:\[)?(\d{1,2})(?::(\d{2}))?(?:\])?\s*-?\s*(.*)$/);
-    if (!m) return { hour: null, label: text };
-    const hour = Number(m[1]);
-    if (Number.isNaN(hour) || hour < 0 || hour > 23) return { hour: null, label: text };
-    const label = m[3] ? m[3] : text;
-    return { hour, label };
-  }
+
 
   function renderDayView() {
     if (!dayViewEl) return;
@@ -241,29 +238,41 @@
     container.className = "day-view__grid";
     const date = state.selectedDate;
     const iso = toISODateString(date);
-    const events = getEventsForDate(iso, loadAllEvents()).map(e => {
-      const parsed = parseEventHour(e.text);
-      return { ...e, timeHour: parsed.hour, label: parsed.label || e.text };
-    });
-    for (let hour = 0; hour < 24; hour++) {
+    const events = getEventsForDisplay(date).map(e => ({...e, timeMinute: e.timeMinute || 0}));
+
+    for (let i = 0; i < 48; i++) {
+      const hour = Math.floor(i / 2);
+      const minute = (i % 2) * 30;
+
       const row = document.createElement("div");
       row.className = "day-view__row";
+      row.addEventListener("click", () => {
+        openDayModal(state.selectedDate, null, hour, minute);
+      });
+
       const label = document.createElement("div");
       label.className = "day-view__time";
-      label.textContent = `${String(hour).padStart(2, "0")}:00`;
+      label.textContent = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      
       const slot = document.createElement("div");
       slot.className = "day-view__slot";
-      const evsHere = events.filter(e => e.timeHour === hour);
+
+      const evsHere = events.filter(e => e.timeHour === hour && e.timeMinute >= minute && e.timeMinute < (minute + 30));
       for (const e of evsHere) {
         const chip = document.createElement("div");
         chip.className = "event-chip";
-        chip.textContent = e.label;
+        chip.textContent = e.text;
+        chip.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+        });
         slot.appendChild(chip);
       }
+
       row.appendChild(label);
       row.appendChild(slot);
       container.appendChild(row);
     }
+
     const allDay = events.filter(e => e.timeHour === null);
     if (allDay.length) {
       const allDayWrap = document.createElement("div");
@@ -276,7 +285,7 @@
       for (const e of allDay) {
         const chip = document.createElement("div");
         chip.className = "event-chip";
-        chip.textContent = e.label;
+        chip.textContent = e.text;
         allDayList.appendChild(chip);
       }
       allDayWrap.appendChild(allDayTitle);
@@ -333,6 +342,7 @@
 
   function renderGrid() {
     gridEl.innerHTML = "";
+    const allEvents = loadAllEvents();
 
     const firstDay = getStartOfMonth(state.visibleMonthDate);
     const lastDay = getEndOfMonth(state.visibleMonthDate);
@@ -344,13 +354,14 @@
     endGridDate.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
 
     const today = new Date();
+    const fragment = document.createDocumentFragment();
 
     for (let d = new Date(startGridDate); d <= endGridDate; d.setDate(d.getDate() + 1)) {
       const day = new Date(d.getTime());
       const cell = document.createElement("div");
       cell.className = "day-cell";
       cell.setAttribute("role", "gridcell");
-      cell.tabIndex = 0;
+      cell.dataset.date = toISODateString(day);
 
       const isOtherMonth = day.getMonth() !== state.visibleMonthDate.getMonth();
       const isToday = isSameDay(day, today);
@@ -374,7 +385,7 @@
       const eventsPill = document.createElement("div");
       eventsPill.className = "pill";
       const iso = toISODateString(day);
-      const count = getEventsForDate(iso, loadAllEvents()).length;
+      const count = getEventsForDate(iso, allEvents).length;
       eventsPill.textContent = count === 1 ? "1 event" : `${count} events`;
 
       header.appendChild(dateLabel);
@@ -389,7 +400,9 @@
       for (const e of events) {
         const chip = document.createElement("span");
         chip.className = "event-chip";
-        const time = typeof e.timeHour === "number" ? `${String(e.timeHour).padStart(2, "0")}:00 ` : "";
+        const h = e.timeHour;
+        const m = e.timeMinute;
+        const time = typeof h === "number" ? `${String(h).padStart(2, "0")}:${String(m || 0).padStart(2, "0")} ` : "";
         chip.title = `${time}${e.text}`;
         chip.textContent = `${time}${e.text}`;
         eventsPreview.appendChild(chip);
@@ -398,27 +411,36 @@
       cell.appendChild(header);
       cell.appendChild(controls);
       cell.appendChild(eventsPreview);
-
-      cell.addEventListener("click", () => {
-        state.selectedDate = new Date(day.getTime());
-        render();
-        openDayModal(state.selectedDate, cell);
-      });
-      cell.addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter" || ev.key === " ") {
-          ev.preventDefault();
-          state.selectedDate = new Date(day.getTime());
-          render();
-          openDayModal(state.selectedDate, cell);
-        }
-      });
-
-      gridEl.appendChild(cell);
+      
+      cell.tabIndex = 0;
+      fragment.appendChild(cell);
     }
+    gridEl.appendChild(fragment);
   }
   function renderSelectedDay() {
     // Sidebar removed - events now only show in modal
   }
+
+  gridEl.addEventListener("click", (ev) => {
+    const cell = ev.target.closest(".day-cell");
+    if (!cell || !cell.dataset.date) return;
+    const date = new Date(cell.dataset.date + "T00:00:00"); // Ensure parsing as local time
+    state.selectedDate = date;
+    render();
+    openDayModal(date, cell);
+  });
+
+  gridEl.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    const cell = ev.target.closest(".day-cell");
+    if (!cell || !cell.dataset.date) return;
+
+    ev.preventDefault();
+    const date = new Date(cell.dataset.date + "T00:00:00"); // Ensure parsing as local time
+    state.selectedDate = date;
+    render();
+    openDayModal(date, cell);
+  });
 
   prevBtn.addEventListener("click", () => {
     const d = state.visibleMonthDate;
@@ -475,15 +497,22 @@
 
   // View switching
   if (viewMonthBtn) viewMonthBtn.addEventListener("click", () => { state.view = "month"; render(); });
-  if (viewDayBtn) viewDayBtn.addEventListener("click", () => { state.view = "day"; render(); });
-  if (viewYearBtn) viewYearBtn.addEventListener("click", () => { state.view = "year"; render(); });
+  if (viewDayBtn) viewDayBtn.addEventListener("click", () => { state.view = "day"; render(); dayViewEl.scrollIntoView({ behavior: 'smooth' }); });
+  if (viewYearBtn) viewYearBtn.addEventListener("click", () => { state.view = "year"; render(); yearViewEl.scrollIntoView({ behavior: 'smooth' }); });
 
-  function openDayModal(date, anchorEl) {
+  function openDayModal(date, anchorEl, hour = null, minute = 0) {
     if (!dayModal) return;
     dayModal.removeAttribute("hidden");
     document.body.style.overflow = "hidden";
     document.body.classList.add("modal-open");
     renderDayModal(date);
+    if (dayModalTime) {
+      if (typeof hour === "number") {
+        dayModalTime.value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      } else {
+        dayModalTime.value = "";
+      }
+    }
     // Centered modal: no anchor positioning
   }
   function closeDayModal() {
@@ -504,7 +533,9 @@
       for (const e of events) {
         const li = document.createElement("li");
         const text = document.createElement("span");
-        const time = typeof e.timeHour === "number" ? `${String(e.timeHour).padStart(2, "0")}:00 ` : "";
+        const h = e.timeHour;
+        const m = e.timeMinute;
+        const time = typeof h === "number" ? `${String(h).padStart(2, "0")}:${String(m || 0).padStart(2, "0")} ` : "";
         text.textContent = `${time}${e.text}` + (e.repeat && e.repeat !== "none" ? " ⟳" : "");
         text.className = "event-chip";
         const editBtn = document.createElement("button");
@@ -550,20 +581,20 @@
     });
   }
   if (dayModalForm && dayModalInput) {
-    const dayModalTime = document.getElementById("dayModalTime");
-    const dayModalRepeat = document.getElementById("dayModalRepeat");
     dayModalForm.addEventListener("submit", (ev) => {
       ev.preventDefault();
       const text = dayModalInput.value.trim();
       if (!text) return;
       const iso = toISODateString(state.selectedDate);
       let timeHour = null;
+      let timeMinute = null;
       if (dayModalTime && dayModalTime.value) {
         const [hh, mm] = dayModalTime.value.split(":").map(Number);
         if (!Number.isNaN(hh)) timeHour = hh;
+        if (!Number.isNaN(mm)) timeMinute = mm;
       }
       const repeat = dayModalRepeat && dayModalRepeat.value ? dayModalRepeat.value : "none";
-      addEvent(iso, text, { timeHour, repeat });
+      addEvent(iso, text, { timeHour, timeMinute, repeat });
       render();
       renderDayModal(state.selectedDate);
     });
@@ -572,22 +603,28 @@
   function openEditPrompt(eventObj, fallbackIso) {
     const originIso = eventObj.originIso || fallbackIso;
     const currentText = eventObj.text;
-    const currentTime = typeof eventObj.timeHour === "number" ? String(eventObj.timeHour).padStart(2, "0") + ":00" : "";
+    const h = eventObj.timeHour;
+    const m = eventObj.timeMinute;
+    const currentTime = typeof h === "number" ? `${String(h).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}` : "";
     const currentRepeat = eventObj.repeat || "none";
     const newText = window.prompt("Edit title", currentText);
     if (newText === null) return;
     let newTimeHour = eventObj.timeHour;
+    let newTimeMinute = eventObj.timeMinute;
     const timeInput = window.prompt("Edit time (HH:MM) or leave blank for all-day", currentTime);
     if (timeInput !== null) {
       if (timeInput.trim() === "") {
         newTimeHour = null;
+        newTimeMinute = null;
       } else {
-        const [hh] = timeInput.split(":").map(Number);
+        const [hh, mm] = timeInput.split(":").map(Number);
         if (!Number.isNaN(hh) && hh >= 0 && hh <= 23) newTimeHour = hh;
+        if (!Number.isNaN(mm) && mm >= 0 && mm <= 59) newTimeMinute = mm;
+        else newTimeMinute = 0;
       }
     }
     const newRepeat = window.prompt("Repeat (none/daily/weekly/monthly/yearly)", currentRepeat) || currentRepeat;
-    updateEvent(originIso, eventObj.id, { text: newText.trim(), timeHour: newTimeHour, repeat: newRepeat });
+    updateEvent(originIso, eventObj.id, { text: newText.trim(), timeHour: newTimeHour, timeMinute: newTimeMinute, repeat: newRepeat });
     render();
     if (!dayModal.hasAttribute("hidden")) {
       renderDayModal(state.selectedDate);
@@ -619,6 +656,66 @@
   // On page load, apply saved theme
   const savedTheme = localStorage.getItem('calendar_theme') || 'dark';
   applyTheme(savedTheme);
+
+  function updateClock() {
+    const clockEl = document.getElementById('clock');
+    if (!clockEl) return;
+
+    const now = new Date();
+    // Use Intl.DateTimeFormat for robust timezone handling
+    const timeString = new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Jakarta'
+    }).format(now);
+
+    clockEl.textContent = `${timeString} WIB`;
+  }
+
+  setInterval(updateClock, 1000);
+  updateClock(); // initial call
+
+  async function syncIndonesianHolidays() {
+    try {
+      const response = await fetch("https://libur.deno.dev/api");
+      if (!response.ok) {
+        alert("Failed to fetch Indonesian holidays.");
+        return;
+      }
+      const holidays = await response.json();
+      const allEvents = loadAllEvents();
+
+      let newEventsAdded = 0;
+      holidays.forEach(holiday => {
+        const isoDate = holiday.date;
+        const eventText = holiday.name;
+
+        const eventsOnDate = getEventsForDate(isoDate, allEvents);
+        const alreadyExists = eventsOnDate.some(e => e.text === eventText);
+
+        if (!alreadyExists) {
+          addEvent(isoDate, eventText);
+          newEventsAdded++;
+        }
+      });
+
+      if (newEventsAdded > 0) {
+        alert(`Successfully added ${newEventsAdded} new holiday(s).`);
+        render();
+      } else {
+        alert("Holiday events are already up to date.");
+      }
+    } catch (error) {
+      console.error("Error syncing Indonesian holidays:", error);
+      alert("An error occurred while syncing holidays.");
+    }
+  }
+
+  if (syncBtn) {
+    syncBtn.addEventListener("click", syncIndonesianHolidays);
+  }
 
   render();
 })();

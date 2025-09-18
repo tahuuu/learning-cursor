@@ -37,24 +37,22 @@ body.light-mode {
 }
 
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 html, body { height: 100%; }
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
   color: var(--text);
   background: var(--bg);
 }
 
-body.modal-open .calendar,
-body.modal-open #weekdaysHeader,
-body.modal-open #calendarGrid,
-body.modal-open .day-view,
-body.modal-open .year-view {
+body.modal-open .calendar {
   filter: blur(0.5px) brightness(0.95);
   transition: filter 0.2s ease;
 }
 
 .app-header, .app-footer {
+  position: relative;
   padding: 16px 20px;
   text-align: center;
 }
@@ -75,12 +73,14 @@ body.modal-open .year-view {
 }
 
 .calendar {
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.1);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,0.25);
   width: 100%;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
 .calendar__toolbar {
@@ -102,7 +102,7 @@ body.modal-open .year-view {
   background: var(--border-color);
 }
 .calendar__weekdays > div {
-  background: var(--surface);
+  background: transparent;
   padding: 8px 6px;
   text-align: center;
   color: var(--muted);
@@ -117,7 +117,7 @@ body.modal-open .year-view {
 }
 
 .day-cell {
-  background: var(--surface);
+  background: transparent;
   height: 120px;
   padding: 6px;
   display: flex;
@@ -154,9 +154,18 @@ body.modal-open .year-view {
 .day-cell__controls .btn--xs { flex: none; }
 
 .day-cell--selected {
-  outline: 2px solid var(--ring);
-  outline-offset: -2px;
-  background: var(--surface-2);
+  background: var(--accent-1);
+  border-radius: 8px;
+}
+
+.day-cell--selected .day-cell__date,
+.day-cell--selected .day-cell__hijri {
+  color: var(--primary-contrast);
+}
+
+.day-cell--selected .event-chip {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--primary-contrast);
 }
 
 .pill {
@@ -184,7 +193,7 @@ body.modal-open .year-view {
 }
 
 .events {
-  background: var(--surface);
+  background: transparent;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 12px;
@@ -237,7 +246,8 @@ body.modal-open .year-view {
 .btn--ghost:hover { color: var(--text); background: var(--surface-2); border-color: var(--border-color); }
 .btn--xs { padding: 2px 6px; font-size: 12px; border-radius: 6px; }
 
-.input, .month-input {
+.input,
+.month-input {
   width: 100%;
   appearance: none;
   border: 1px solid var(--border-color);
@@ -256,21 +266,24 @@ body.modal-open .year-view {
 .day-view__allday { display: flex; align-items: flex-start; gap: 8px; padding: 8px; border-bottom: 1px solid var(--border-color); }
 .day-view__allday-title { color: var(--muted); min-width: 64px; }
 .day-view__allday-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.day-view__grid { display: grid; grid-template-rows: repeat(24, minmax(40px, auto)); }
+.day-view__grid { display: grid; grid-template-rows: repeat(48, 30px); }
 .day-view__row { display: grid; grid-template-columns: 64px 1fr; border-bottom: 1px dashed var(--border-color-dashed); }
+.day-view__row:hover {
+  background-color: var(--surface-2);
+}
 .day-view__time { color: var(--muted); padding: 6px; font-size: 12px; }
-.day-view__slot { padding: 6px; display: grid; gap: 6px; }
+.day-view__slot { padding: 2px 6px; display: grid; gap: 6px; overflow-y: hidden; }
 
 /* Year view */
 .year-view { margin-top: 8px; }
 .year-view__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.year-view__month { background: var(--surface); border: 1px solid var(--border-color); border-radius: 10px; padding: 8px; }
+.year-view__month { background: transparent; border: 1px solid var(--border-color); border-radius: 10px; padding: 8px; }
 .year-view__month-header { font-weight: 600; color: var(--text); margin-bottom: 6px; font-size: 14px; }
 .year-view__mini-grid { display: grid; gap: 6px; }
 .year-view__mini-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border-color); }
-.year-view__mini-weekdays > div { background: var(--surface); color: var(--muted); padding: 4px 0; text-align: center; font-size: 11px; }
+.year-view__mini-weekdays > div { background: transparent; color: var(--muted); padding: 4px 0; text-align: center; font-size: 11px; }
 .year-view__mini-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border-color); }
-.year-view__mini-day { background: var(--surface); color: var(--text); text-align: right; padding: 4px 6px; font-size: 11px; cursor: pointer; }
+.year-view__mini-day { background: transparent; color: var(--text); text-align: right; padding: 4px 6px; font-size: 11px; cursor: pointer; }
 .year-view__mini-day--muted { color: var(--muted); opacity: 0.6; }
 
 .visually-hidden {
@@ -307,7 +320,7 @@ body.modal-open .year-view {
   transform: translate(-50%, -50%);
   width: min(500px, 90vw);
   max-height: 80vh;
-  background: var(--surface);
+  background: transparent;
   border: 1px solid var(--border-color);
   border-radius: 14px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
@@ -372,4 +385,21 @@ body.light-mode .theme-switch {
 
 body.light-mode .theme-switch__handle {
   transform: translateX(25px);
+}
+
+.month-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+body.light-mode .month-input::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+
+.clock {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 2em;
+  font-weight: bold;
+  color: var(--accent-3);
 }
