@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Simple Calendar</title>
+    <link rel="stylesheet" href="./calendar.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <h1 class="app-title">Calendar Project by Dimas</h1>
+      <p class="app-subtitle">created with cursor</p>
+      <div id="clock" class="clock"></div>
+    </header>
+
+    <main class="app-main" aria-label="Calendar" id="app-root">
+      <div class="theme-toggle-container">
+        <div id="theme-toggle" class="theme-switch">
+          <div class="theme-switch__handle"></div>
+        </div>
+        <span id="theme-label" class="theme-label"></span>
+      </div>
+      <section class="calendar" aria-labelledby="calendar-heading">
+        <div class="calendar__toolbar">
+          <div class="toolbar__left">
+            <button id="prevMonthBtn" class="btn" aria-label="Previous month">◀</button>
+            <button id="todayBtn" class="btn" aria-label="Go to today">Today</button>
+            <button id="syncBtn" class="btn" aria-label="Sync Indonesian Holidays">Sync Holidays</button>
+            <button id="nextMonthBtn" class="btn" aria-label="Next month">▶</button>
+          </div>
+          <div class="toolbar__center">
+            <h2 id="calendar-heading" class="calendar__title" aria-live="polite" aria-atomic="true"></h2>
+            <div class="view-switcher">
+              <button id="viewMonthBtn" class="btn" type="button" aria-label="Month view">Month</button>
+              <button id="viewDayBtn" class="btn" type="button" aria-label="Day view">Day</button>
+              <button id="viewYearBtn" class="btn" type="button" aria-label="Year view">Year</button>
+            </div>
+          </div>
+          <div class="toolbar__right">
+            <label class="visually-hidden" for="jumpToMonth">Jump to month</label>
+            <input id="jumpToMonth" type="month" class="month-input" aria-label="Jump to month" />
+            <label class="visually-hidden" for="goToDate">Go to date</label>
+            <input id="goToDate" type="date" class="month-input" aria-label="Go to date" />
+            <button id="goToDateBtn" class="btn btn--primary" type="button" aria-label="Go to the selected date">Go</button>
+          </div>
+        </div>
+
+        <div id="weekdaysHeader" class="calendar__weekdays" aria-hidden="true">
+          <div>Sun</div>
+          <div>Mon</div>
+          <div>Tue</div>
+          <div>Wed</div>
+          <div>Thu</div>
+          <div>Fri</div>
+          <div>Sat</div>
+        </div>
+
+        <div id="calendarGrid" class="calendar__grid" role="grid" aria-readonly="true" aria-labelledby="calendar-heading"></div>
+
+        <div id="dayView" class="day-view" hidden></div>
+        <div id="yearView" class="year-view" hidden></div>
+      </section>
+
+    </main>
+
+    <!-- Day modal -->
+    <div id="dayModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="dayModalTitle" hidden>
+      <div class="modal__backdrop" data-close="true"></div>
+      <div class="modal__content" role="document">
+        <div class="modal__header">
+          <h3 id="dayModalTitle" class="modal__title"></h3>
+          <button id="closeDayModal" class="btn btn--ghost" aria-label="Close">✕</button>
+        </div>
+        <div class="modal__body">
+          <div id="dayModalDate" class="events__date"></div>
+          <ul id="dayModalList" class="events__list"></ul>
+          <form id="dayModalForm" class="events__form" autocomplete="off">
+            <div class="form-group">
+              <label for="dayModalInput">Event Title</label>
+              <input id="dayModalInput" class="input" type="text" placeholder="Event title (optional time in title)" aria-label="Event text" required />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="dayModalStartTime">Start Time</label>
+                <input id="dayModalStartTime" class="input" type="time" aria-label="Event start time" />
+              </div>
+              <div class="form-group">
+                <label for="dayModalEndTime">End Time</label>
+                <input id="dayModalEndTime" class="input" type="time" aria-label="Event end time" />
+              </div>
+            </div>
+            <div class="form-group">
+              <input type="checkbox" id="dayModalAllDay" />
+              <label for="dayModalAllDay">All Day</label>
+            </div>
+            <div class="form-group">
+              <label for="dayModalRepeat">Repeat</label>
+              <select id="dayModalRepeat" class="input" aria-label="Repeat">
+                  <option value="none">Does not repeat</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn--primary">Add</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      <p>Data is stored locally in your browser.</p>
+    </footer>
+
+    <script src="./calendar.js"></script>
+  </body>
+  </html>
