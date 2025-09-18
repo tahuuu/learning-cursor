@@ -80,8 +80,9 @@
     const event = {
       id: crypto.randomUUID(),
       text,
-      timeHour: typeof opts.timeHour === "number" ? opts.timeHour : null,
-      timeMinute: typeof opts.timeMinute === "number" ? opts.timeMinute : null,
+      isAllDay: opts.isAllDay || false,
+      startTime: opts.startTime || null,
+      endTime: opts.endTime || null,
       repeat: opts.repeat || "none",
       origin: isoDate
     };
@@ -107,8 +108,9 @@
     const updated = {
       ...existing,
       text: typeof updates.text === "string" ? updates.text : existing.text,
-      timeHour: updates.timeHour !== undefined ? updates.timeHour : existing.timeHour,
-      timeMinute: updates.timeMinute !== undefined ? updates.timeMinute : existing.timeMinute,
+      isAllDay: typeof updates.isAllDay === "boolean" ? updates.isAllDay : existing.isAllDay,
+      startTime: updates.startTime !== undefined ? updates.startTime : existing.startTime,
+      endTime: updates.endTime !== undefined ? updates.endTime : existing.endTime,
       repeat: updates.repeat || existing.repeat
     };
     list[idx] = updated;
@@ -152,14 +154,13 @@
     }
     const combined = [...direct, ...extras];
     combined.sort((a, b) => {
-      const ah = typeof a.timeHour === "number" ? a.timeHour : 99;
-      const am = typeof a.timeMinute === "number" ? a.timeMinute : 0;
-      const bh = typeof b.timeHour === "number" ? b.timeHour : 99;
-      const bm = typeof b.timeMinute === "number" ? b.timeMinute : 0;
-      if (ah !== bh) {
-        return ah - bh;
-      }
-      return am - bm;
+      if (a.isAllDay) return -1;
+      if (b.isAllDay) return 1;
+      if (!a.startTime) return 1;
+      if (!b.startTime) return -1;
+      const aTime = a.startTime.hour * 60 + a.startTime.minute;
+      const bTime = b.startTime.hour * 60 + b.startTime.minute;
+      return aTime - bTime;
     });
     return combined;
   }
@@ -190,6 +191,9 @@
   const closeDayModalBtn = document.getElementById("closeDayModal");
   const dayModalTime = document.getElementById("dayModalTime");
   const dayModalRepeat = document.getElementById("dayModalRepeat");
+  const dayModalStartTime = document.getElementById("dayModalStartTime");
+  const dayModalEndTime = document.getElementById("dayModalEndTime");
+  const dayModalAllDay = document.getElementById("dayModalAllDay");
 
   const state = {
     visibleMonthDate: getStartOfMonth(new Date()),
@@ -237,8 +241,7 @@
     const container = document.createElement("div");
     container.className = "day-view__grid";
     const date = state.selectedDate;
-    const iso = toISODateString(date);
-    const events = getEventsForDisplay(date).map(e => ({...e, timeMinute: e.timeMinute || 0}));
+    const events = getEventsForDisplay(date);
 
     for (let i = 0; i < 48; i++) {
       const hour = Math.floor(i / 2);
@@ -257,13 +260,22 @@
       const slot = document.createElement("div");
       slot.className = "day-view__slot";
 
-      const evsHere = events.filter(e => e.timeHour === hour && e.timeMinute >= minute && e.timeMinute < (minute + 30));
+      const evsHere = events.filter(e => {
+        if (e.isAllDay || !e.startTime) return false;
+        const eventStart = e.startTime.hour * 60 + e.startTime.minute;
+        const eventEnd = e.endTime ? e.endTime.hour * 60 + e.endTime.minute : eventStart + 30;
+        const slotStart = hour * 60 + minute;
+        const slotEnd = slotStart + 30;
+        return slotStart < eventEnd && slotEnd > eventStart;
+      });
+
       for (const e of evsHere) {
         const chip = document.createElement("div");
         chip.className = "event-chip";
         chip.textContent = e.text;
         chip.addEventListener("click", (ev) => {
           ev.stopPropagation();
+          openEditPrompt(e, toISODateString(date));
         });
         slot.appendChild(chip);
       }
@@ -273,7 +285,7 @@
       container.appendChild(row);
     }
 
-    const allDay = events.filter(e => e.timeHour === null);
+    const allDay = events.filter(e => e.isAllDay);
     if (allDay.length) {
       const allDayWrap = document.createElement("div");
       allDayWrap.className = "day-view__allday";
@@ -286,6 +298,10 @@
         const chip = document.createElement("div");
         chip.className = "event-chip";
         chip.textContent = e.text;
+        chip.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          openEditPrompt(e, toISODateString(date));
+        });
         allDayList.appendChild(chip);
       }
       allDayWrap.appendChild(allDayTitle);
@@ -506,14 +522,39 @@
     document.body.style.overflow = "hidden";
     document.body.classList.add("modal-open");
     renderDayModal(date);
-    if (dayModalTime) {
+
+    const timeInputs = [dayModalStartTime, dayModalEndTime];
+
+    function handleAllDayChange() {
+      const isAllDay = dayModalAllDay.checked;
+      timeInputs.forEach(input => {
+        if (input) {
+          input.disabled = isAllDay;
+          if (isAllDay) {
+            input.value = "";
+          }
+        }
+      });
+    }
+
+    if (dayModalAllDay) {
+      dayModalAllDay.checked = false; // Reset checkbox
+      dayModalAllDay.removeEventListener("change", handleAllDayChange);
+      dayModalAllDay.addEventListener("change", handleAllDayChange);
+    }
+
+    if (dayModalStartTime) {
       if (typeof hour === "number") {
-        dayModalTime.value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+        dayModalStartTime.value = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
       } else {
-        dayModalTime.value = "";
+        dayModalStartTime.value = "";
       }
     }
-    // Centered modal: no anchor positioning
+    if (dayModalEndTime) {
+      dayModalEndTime.value = "";
+    }
+
+    handleAllDayChange(); // Initial call to set state
   }
   function closeDayModal() {
     if (!dayModal) return;
@@ -533,9 +574,14 @@
       for (const e of events) {
         const li = document.createElement("li");
         const text = document.createElement("span");
-        const h = e.timeHour;
-        const m = e.timeMinute;
-        const time = typeof h === "number" ? `${String(h).padStart(2, "0")}:${String(m || 0).padStart(2, "0")} ` : "";
+        let time = "";
+        if (e.isAllDay) {
+          time = "All Day";
+        } else if (e.startTime) {
+          const start = `${String(e.startTime.hour).padStart(2, "0")}:${String(e.startTime.minute).padStart(2, "0")}`;
+          const end = e.endTime ? ` - ${String(e.endTime.hour).padStart(2, "0")}:${String(e.endTime.minute).padStart(2, "0")}` : "";
+          time = `${start}${end}`;
+        }
         text.textContent = `${time}${e.text}` + (e.repeat && e.repeat !== "none" ? " ⟳" : "");
         text.className = "event-chip";
         const editBtn = document.createElement("button");
@@ -586,15 +632,24 @@
       const text = dayModalInput.value.trim();
       if (!text) return;
       const iso = toISODateString(state.selectedDate);
-      let timeHour = null;
-      let timeMinute = null;
-      if (dayModalTime && dayModalTime.value) {
-        const [hh, mm] = dayModalTime.value.split(":").map(Number);
-        if (!Number.isNaN(hh)) timeHour = hh;
-        if (!Number.isNaN(mm)) timeMinute = mm;
+      const isAllDay = dayModalAllDay.checked;
+
+      let startTime = null;
+      let endTime = null;
+
+      if (!isAllDay) {
+        if (dayModalStartTime.value) {
+          const [hour, minute] = dayModalStartTime.value.split(":").map(Number);
+          startTime = { hour, minute };
+        }
+        if (dayModalEndTime.value) {
+          const [hour, minute] = dayModalEndTime.value.split(":").map(Number);
+          endTime = { hour, minute };
+        }
       }
+
       const repeat = dayModalRepeat && dayModalRepeat.value ? dayModalRepeat.value : "none";
-      addEvent(iso, text, { timeHour, timeMinute, repeat });
+      addEvent(iso, text, { isAllDay, startTime, endTime, repeat });
       render();
       renderDayModal(state.selectedDate);
     });
@@ -602,33 +657,66 @@
 
   function openEditPrompt(eventObj, fallbackIso) {
     const originIso = eventObj.originIso || fallbackIso;
-    const currentText = eventObj.text;
-    const h = eventObj.timeHour;
-    const m = eventObj.timeMinute;
-    const currentTime = typeof h === "number" ? `${String(h).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}` : "";
-    const currentRepeat = eventObj.repeat || "none";
-    const newText = window.prompt("Edit title", currentText);
-    if (newText === null) return;
-    let newTimeHour = eventObj.timeHour;
-    let newTimeMinute = eventObj.timeMinute;
-    const timeInput = window.prompt("Edit time (HH:MM) or leave blank for all-day", currentTime);
-    if (timeInput !== null) {
-      if (timeInput.trim() === "") {
-        newTimeHour = null;
-        newTimeMinute = null;
-      } else {
-        const [hh, mm] = timeInput.split(":").map(Number);
-        if (!Number.isNaN(hh) && hh >= 0 && hh <= 23) newTimeHour = hh;
-        if (!Number.isNaN(mm) && mm >= 0 && mm <= 59) newTimeMinute = mm;
-        else newTimeMinute = 0;
+
+    // Pre-fill the modal with the event's data
+    dayModalInput.value = eventObj.text;
+    dayModalAllDay.checked = eventObj.isAllDay || false;
+
+    if (eventObj.startTime) {
+      dayModalStartTime.value = `${String(eventObj.startTime.hour).padStart(2, "0")}:${String(eventObj.startTime.minute).padStart(2, "0")}`;
+    } else {
+      dayModalStartTime.value = "";
+    }
+
+    if (eventObj.endTime) {
+      dayModalEndTime.value = `${String(eventObj.endTime.hour).padStart(2, "0")}:${String(eventObj.endTime.minute).padStart(2, "0")}`;
+    } else {
+      dayModalEndTime.value = "";
+    }
+
+    dayModalRepeat.value = eventObj.repeat || "none";
+
+    // Change the form's submit handler to update the event instead of creating a new one
+    const newSubmitHandler = (ev) => {
+      ev.preventDefault();
+      const newText = dayModalInput.value.trim();
+      if (!newText) return;
+
+      const isAllDay = dayModalAllDay.checked;
+      let startTime = null;
+      let endTime = null;
+
+      if (!isAllDay) {
+        if (dayModalStartTime.value) {
+          const [hour, minute] = dayModalStartTime.value.split(":").map(Number);
+          startTime = { hour, minute };
+        }
+        if (dayModalEndTime.value) {
+          const [hour, minute] = dayModalEndTime.value.split(":").map(Number);
+          endTime = { hour, minute };
+        }
       }
+
+      const newRepeat = dayModalRepeat.value;
+
+      updateEvent(originIso, eventObj.id, { text: newText, isAllDay, startTime, endTime, repeat: newRepeat });
+
+      // Restore the original form handler and close the modal
+      dayModalForm.removeEventListener("submit", newSubmitHandler);
+      dayModalForm.addEventListener("submit", originalSubmitHandler);
+      closeDayModal();
+      render();
+    };
+
+    // Temporarily replace the form's submit handler
+    const originalSubmitHandler = dayModalForm._submitHandler;
+    if (originalSubmitHandler) {
+        dayModalForm.removeEventListener("submit", originalSubmitHandler);
     }
-    const newRepeat = window.prompt("Repeat (none/daily/weekly/monthly/yearly)", currentRepeat) || currentRepeat;
-    updateEvent(originIso, eventObj.id, { text: newText.trim(), timeHour: newTimeHour, timeMinute: newTimeMinute, repeat: newRepeat });
-    render();
-    if (!dayModal.hasAttribute("hidden")) {
-      renderDayModal(state.selectedDate);
-    }
+    dayModalForm.addEventListener("submit", newSubmitHandler);
+    dayModalForm._submitHandler = newSubmitHandler; // Store the new handler so it can be removed
+
+    openDayModal(new Date(originIso + "T00:00:00"));
   }
 
   const themeToggleBtn = document.getElementById("theme-toggle");

@@ -105,7 +105,6 @@ body.modal-open .calendar {
   background: transparent;
   padding: 8px 6px;
   text-align: center;
-  color: var(--muted);
   font-size: 12px;
 }
 
@@ -153,6 +152,8 @@ body.modal-open .calendar {
 .day-cell__controls .pill { flex: 1; }
 .day-cell__controls .btn--xs { flex: none; }
 
+
+
 .day-cell--selected {
   background: var(--accent-1);
   border-radius: 8px;
@@ -160,6 +161,11 @@ body.modal-open .calendar {
 
 .day-cell--selected .day-cell__date,
 .day-cell--selected .day-cell__hijri {
+  color: var(--primary-contrast);
+}
+
+.day-cell--selected .event-chip {
+  background: rgba(255, 255, 255, 0.2);
   color: var(--primary-contrast);
 }
 
@@ -184,7 +190,7 @@ body.modal-open .calendar {
   background: var(--surface-2);
   color: var(--accent-2);
   padding: 4px 6px;
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   font-size: 12px;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -222,16 +228,7 @@ body.modal-open .calendar {
 .form-row { display: flex; gap: 8px; margin: 8px 0; }
 .form-row .input { flex: 1; }
 
-.btn {
-  appearance: none;
-  border: 1px solid var(--border-color);
-  background: var(--surface-2);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 13px;
-  cursor: pointer;
-}
+.btn { appearance: none; border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 6px 10px; font-size: 13px; cursor: pointer; }
 .btn:hover { border-color: var(--ring); background: var(--surface-2); }
 .btn:focus { outline: 2px solid var(--ring); outline-offset: 2px; }
 .btn--primary { background: var(--primary); color: var(--primary-contrast); border-color: transparent; }
@@ -253,7 +250,7 @@ body.modal-open .calendar {
   border: 1px solid var(--border-color);
   background: var(--bg);
   color: var(--text);
-  border-radius: 8px;
+  border-radius: var(--border-radius-md);
   padding: 8px 10px;
   font-size: 14px;
 }
@@ -320,7 +317,7 @@ body.modal-open .calendar {
   transform: translate(-50%, -50%);
   width: min(500px, 90vw);
   max-height: 80vh;
-  background: transparent;
+  background: var(--surface);
   border: 1px solid var(--border-color);
   border-radius: 14px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
