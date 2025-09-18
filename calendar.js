@@ -231,6 +231,11 @@
       titleEl.textContent = `${y}`;
     }
     jumpInput.value = `${y}-${String(m + 1).padStart(2, "0")}`;
+
+    // Update active class on view switcher buttons
+    viewMonthBtn.classList.toggle("is-active", state.view === "month");
+    viewDayBtn.classList.toggle("is-active", state.view === "day");
+    viewYearBtn.classList.toggle("is-active", state.view === "year");
   }
 
 
@@ -459,14 +464,26 @@
   });
 
   prevBtn.addEventListener("click", () => {
-    const d = state.visibleMonthDate;
-    state.visibleMonthDate = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-    render();
+    gridEl.classList.add("slide-out-right");
+    setTimeout(() => {
+      const d = state.visibleMonthDate;
+      state.visibleMonthDate = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+      render();
+      gridEl.classList.remove("slide-out-right");
+      gridEl.classList.add("slide-in-left");
+      setTimeout(() => gridEl.classList.remove("slide-in-left"), 300);
+    }, 300);
   });
   nextBtn.addEventListener("click", () => {
-    const d = state.visibleMonthDate;
-    state.visibleMonthDate = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-    render();
+    gridEl.classList.add("slide-out-left");
+    setTimeout(() => {
+      const d = state.visibleMonthDate;
+      state.visibleMonthDate = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      render();
+      gridEl.classList.remove("slide-out-left");
+      gridEl.classList.add("slide-in-right");
+      setTimeout(() => gridEl.classList.remove("slide-in-right"), 300);
+    }, 300);
   });
   todayBtn.addEventListener("click", () => {
     const today = new Date();
@@ -766,38 +783,59 @@
   updateClock(); // initial call
 
   async function syncIndonesianHolidays() {
+    const year = state.visibleMonthDate.getFullYear();
+    const syncedYearsKey = "synced_holiday_years";
+
     try {
-      const response = await fetch("https://libur.deno.dev/api");
-      if (!response.ok) {
-        alert("Failed to fetch Indonesian holidays.");
+      const syncedYears = JSON.parse(localStorage.getItem(syncedYearsKey) || "[]");
+      if (syncedYears.includes(year)) {
+        alert(`Holidays for ${year} have already been synced.`);
         return;
       }
-      const holidays = await response.json();
-      const allEvents = loadAllEvents();
 
+      const response = await fetch(`https://libur.deno.dev/api?year=${year}`);
+      if (!response.ok) {
+        alert(`Failed to fetch Indonesian holidays for ${year}.`);
+        return;
+      }
+
+      const holidays = await response.json();
+      if (!Array.isArray(holidays) || holidays.length === 0) {
+        alert(`No holiday data found for ${year}. The API may not have data for this year yet.`);
+        return;
+      }
+
+      const allEvents = loadAllEvents();
       let newEventsAdded = 0;
+
       holidays.forEach(holiday => {
         const isoDate = holiday.date;
         const eventText = holiday.name;
-
         const eventsOnDate = getEventsForDate(isoDate, allEvents);
-        const alreadyExists = eventsOnDate.some(e => e.text === eventText);
+        const alreadyExists = eventsOnDate.some(e => e.text === eventText && e.isAllDay);
 
         if (!alreadyExists) {
-          addEvent(isoDate, eventText);
+          addEvent(isoDate, eventText, { isAllDay: true });
           newEventsAdded++;
         }
       });
 
       if (newEventsAdded > 0) {
-        alert(`Successfully added ${newEventsAdded} new holiday(s).`);
+        alert(`Successfully added ${newEventsAdded} new holiday(s) for ${year}.`);
+        syncedYears.push(year);
+        localStorage.setItem(syncedYearsKey, JSON.stringify(syncedYears));
         render();
       } else {
-        alert("Holiday events are already up to date.");
+        alert(`Holiday events for ${year} are already up to date.`);
+        // Still mark as synced even if no new events were added
+        if (!syncedYears.includes(year)) {
+          syncedYears.push(year);
+          localStorage.setItem(syncedYearsKey, JSON.stringify(syncedYears));
+        }
       }
     } catch (error) {
-      console.error("Error syncing Indonesian holidays:", error);
-      alert("An error occurred while syncing holidays.");
+      console.error(`Error syncing Indonesian holidays for ${year}:`, error);
+      alert(`An error occurred while syncing holidays for ${year}.`);
     }
   }
 
