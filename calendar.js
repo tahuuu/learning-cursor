@@ -46,6 +46,12 @@
   function getEndOfMonth(date) {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0);
   }
+  function getStartOfWeek(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+    return new Date(d.setDate(diff));
+  }
   function toISODateString(date) {
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, "0");
@@ -83,6 +89,7 @@
       isAllDay: opts.isAllDay || false,
       startTime: opts.startTime || null,
       endTime: opts.endTime || null,
+      color: opts.color || "default",
       repeat: opts.repeat || "none",
       origin: isoDate
     };
@@ -102,21 +109,45 @@
   function updateEvent(originIso, id, updates) {
     const all = loadAllEvents();
     const list = getEventsForDate(originIso, all);
-    const idx = list.findIndex(e => e.id === id);
-    if (idx === -1) return null;
-    const existing = list[idx];
-    const updated = {
-      ...existing,
-      text: typeof updates.text === "string" ? updates.text : existing.text,
-      isAllDay: typeof updates.isAllDay === "boolean" ? updates.isAllDay : existing.isAllDay,
-      startTime: updates.startTime !== undefined ? updates.startTime : existing.startTime,
-      endTime: updates.endTime !== undefined ? updates.endTime : existing.endTime,
-      repeat: updates.repeat || existing.repeat
-    };
-    list[idx] = updated;
-    all[originIso] = list;
+    const eventIndex = list.findIndex(e => e.id === id);
+    if (eventIndex === -1) return null;
+
+    const eventToUpdate = { ...list[eventIndex] };
+
+    // If moving to a new date
+    if (updates.newIso && updates.newIso !== originIso) {
+      // Remove from old list
+      list.splice(eventIndex, 1);
+      if (list.length === 0) {
+        delete all[originIso];
+      } else {
+        all[originIso] = list;
+      }
+
+      // Add to new list
+      const newList = getEventsForDate(updates.newIso, all);
+      eventToUpdate.startTime = updates.startTime;
+      eventToUpdate.endTime = updates.endTime;
+      eventToUpdate.origin = updates.newIso;
+      newList.push(eventToUpdate);
+      all[updates.newIso] = newList;
+    } else {
+      // Standard update
+      const updated = {
+        ...eventToUpdate,
+        text: typeof updates.text === "string" ? updates.text : eventToUpdate.text,
+        isAllDay: typeof updates.isAllDay === "boolean" ? updates.isAllDay : eventToUpdate.isAllDay,
+        startTime: updates.startTime !== undefined ? updates.startTime : eventToUpdate.startTime,
+        endTime: updates.endTime !== undefined ? updates.endTime : eventToUpdate.endTime,
+        color: updates.color || eventToUpdate.color,
+        repeat: updates.repeat || eventToUpdate.repeat
+      };
+      list[eventIndex] = updated;
+      all[originIso] = list;
+    }
+
     saveAllEvents(all);
-    return updated;
+    return eventToUpdate;
   }
 
   function matchesRecurrence(originDate, targetDate, repeat) {
@@ -172,13 +203,13 @@
   const nextBtn = document.getElementById("nextMonthBtn");
   const todayBtn = document.getElementById("todayBtn");
   const jumpInput = document.getElementById("jumpToMonth");
-  const goToDateInput = document.getElementById("goToDate");
-  const goToDateBtn = document.getElementById("goToDateBtn");
   const viewMonthBtn = document.getElementById("viewMonthBtn");
   const viewDayBtn = document.getElementById("viewDayBtn");
+  const viewWeekBtn = document.getElementById("viewWeekBtn");
   const viewYearBtn = document.getElementById("viewYearBtn");
   const syncBtn = document.getElementById("syncBtn");
   const dayViewEl = document.getElementById("dayView");
+  const weekViewEl = document.getElementById("weekView");
   const yearViewEl = document.getElementById("yearView");
   // Removed sidebar elements - now using modal only
   // Modal elements
@@ -194,6 +225,9 @@
   const dayModalStartTime = document.getElementById("dayModalStartTime");
   const dayModalEndTime = document.getElementById("dayModalEndTime");
   const dayModalAllDay = document.getElementById("dayModalAllDay");
+  const dayModalColor = document.getElementById("dayModalColor");
+  const editingEventId = document.getElementById("editingEventId");
+  const searchInput = document.getElementById("searchInput");
 
   const state = {
     visibleMonthDate: getStartOfMonth(new Date()),
@@ -203,17 +237,20 @@
 
   function render() {
     renderToolbar();
+    renderGrid();
 
     weekdaysHeader.hidden = state.view !== "month";
     gridEl.hidden = state.view !== "month";
     dayViewEl.hidden = state.view !== "day";
+    weekViewEl.hidden = state.view !== "week";
     yearViewEl.hidden = state.view !== "year";
 
     if (state.view === "month") {
-      renderGrid();
       renderSelectedDay();
     } else if (state.view === "day") {
       renderDayView();
+    } else if (state.view === "week") {
+      renderWeekView();
     } else if (state.view === "year") {
       renderYearView();
     }
@@ -231,11 +268,6 @@
       titleEl.textContent = `${y}`;
     }
     jumpInput.value = `${y}-${String(m + 1).padStart(2, "0")}`;
-
-    // Update active class on view switcher buttons
-    viewMonthBtn.classList.toggle("is-active", state.view === "month");
-    viewDayBtn.classList.toggle("is-active", state.view === "day");
-    viewYearBtn.classList.toggle("is-active", state.view === "year");
   }
 
 
@@ -257,6 +289,50 @@
       row.addEventListener("click", () => {
         openDayModal(state.selectedDate, null, hour, minute);
       });
+      row.addEventListener("dragover", (ev) => {
+        ev.preventDefault();
+        // Add a class to indicate a valid drop target
+        row.classList.add("drop-target");
+      });
+
+      row.addEventListener("dragleave", (ev) => {
+        // Remove the class when dragging leaves
+        row.classList.remove("drop-target");
+      });
+
+      row.addEventListener("drop", (ev) => {
+        ev.preventDefault();
+        row.classList.remove("drop-target");
+        const data = JSON.parse(ev.dataTransfer.getData("text/plain"));
+        const allEvents = loadAllEvents();
+        const eventList = getEventsForDate(data.originIso, allEvents);
+        const eventToMove = eventList.find(e => e.id === data.id);
+
+        if (!eventToMove) return;
+
+        let duration = 30; // Default duration
+        if (eventToMove.startTime && eventToMove.endTime) {
+          const startMinutes = eventToMove.startTime.hour * 60 + eventToMove.startTime.minute;
+          const endMinutes = eventToMove.endTime.hour * 60 + eventToMove.endTime.minute;
+          duration = endMinutes - startMinutes;
+        }
+
+        const newStartHour = hour;
+        const newStartMinute = minute;
+
+        const newStartTotalMinutes = newStartHour * 60 + newStartMinute;
+        const newEndTotalMinutes = newStartTotalMinutes + duration;
+        const newEndHour = Math.floor(newEndTotalMinutes / 60);
+        const newEndMinute = newEndTotalMinutes % 60;
+
+        const updates = {
+          startTime: { hour: newStartHour, minute: newStartMinute },
+          endTime: { hour: newEndHour, minute: newEndMinute }
+        };
+
+        updateEvent(data.originIso, data.id, updates);
+        render();
+      });
 
       const label = document.createElement("div");
       label.className = "day-view__time";
@@ -276,11 +352,11 @@
 
       for (const e of evsHere) {
         const chip = document.createElement("div");
-        chip.className = "event-chip";
+        chip.className = `event-chip color-${e.color || 'default'}`;
         chip.textContent = e.text;
-        chip.addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          openEditPrompt(e, toISODateString(date));
+        chip.draggable = true;
+        chip.addEventListener("dragstart", (ev) => {
+          ev.dataTransfer.setData("text/plain", JSON.stringify({ id: e.id, originIso: toISODateString(date) }));
         });
         slot.appendChild(chip);
       }
@@ -301,7 +377,7 @@
       allDayList.className = "day-view__allday-list";
       for (const e of allDay) {
         const chip = document.createElement("div");
-        chip.className = "event-chip";
+        chip.className = `event-chip color-${e.color || 'default'}`;
         chip.textContent = e.text;
         chip.addEventListener("click", (ev) => {
           ev.stopPropagation();
@@ -314,6 +390,135 @@
       dayViewEl.appendChild(allDayWrap);
     }
     dayViewEl.appendChild(container);
+  }
+
+  function renderWeekView() {
+    if (!weekViewEl) return;
+    weekViewEl.innerHTML = "";
+
+    const startOfWeek = getStartOfWeek(state.selectedDate);
+    const timeline = document.createElement("div");
+    timeline.className = "week-view__timeline";
+
+    for (let i = 0; i < 24; i++) {
+      const timeLabel = document.createElement("div");
+      timeLabel.className = "week-view__time-label";
+      timeLabel.textContent = `${String(i).padStart(2, "0")}:00`;
+      timeline.appendChild(timeLabel);
+    }
+
+    const daysContainer = document.createElement("div");
+    daysContainer.className = "week-view__days";
+
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+
+      const dayWrapper = document.createElement("div");
+      dayWrapper.className = "week-view__day";
+
+      const dayHeader = document.createElement("div");
+      dayHeader.className = "week-view__day-header";
+      dayHeader.textContent = `${day.toLocaleDateString('en-US', { weekday: 'short' })} ${day.getDate()}`;
+      
+      const allDayContainer = document.createElement("div");
+      allDayContainer.className = "week-view__allday-events";
+      dayHeader.appendChild(allDayContainer);
+
+      dayWrapper.appendChild(dayHeader);
+
+      const dayBody = document.createElement("div");
+      dayBody.className = "week-view__day-body";
+
+      dayBody.addEventListener("dragover", (ev) => {
+        ev.preventDefault();
+        ev.currentTarget.classList.add("drop-target");
+      });
+
+      dayBody.addEventListener("dragleave", (ev) => {
+        ev.currentTarget.classList.remove("drop-target");
+      });
+
+      dayBody.addEventListener("drop", (ev) => {
+        ev.preventDefault();
+        ev.currentTarget.classList.remove("drop-target");
+
+        const data = JSON.parse(ev.dataTransfer.getData("text/plain"));
+        const newDateIso = toISODateString(day);
+
+        const rect = ev.currentTarget.getBoundingClientRect();
+        const y = ev.clientY - rect.top;
+        const minuteOfDay = (y / ev.currentTarget.offsetHeight) * 24 * 60;
+        const snappedMinute = Math.round(minuteOfDay / 30) * 30;
+        const newStartHour = Math.floor(snappedMinute / 60);
+        const newStartMinute = snappedMinute % 60;
+
+        const allEvents = loadAllEvents();
+        const eventList = getEventsForDate(data.originIso, allEvents);
+        const eventToMove = eventList.find(e => e.id === data.id);
+
+        if (!eventToMove) return;
+
+        let duration = 30;
+        if (eventToMove.startTime && eventToMove.endTime) {
+          const startMinutes = eventToMove.startTime.hour * 60 + eventToMove.startTime.minute;
+          const endMinutes = eventToMove.endTime.hour * 60 + eventToMove.endTime.minute;
+          duration = endMinutes - startMinutes;
+        }
+
+        const newStartTotalMinutes = newStartHour * 60 + newStartMinute;
+        const newEndTotalMinutes = newStartTotalMinutes + duration;
+        const newEndHour = Math.floor(newEndTotalMinutes / 60);
+        const newEndMinute = newEndTotalMinutes % 60;
+
+        const updates = {
+          startTime: { hour: newStartHour, minute: newStartMinute },
+          endTime: { hour: newEndHour, minute: newEndMinute },
+          newIso: newDateIso
+        };
+
+        updateEvent(data.originIso, data.id, updates);
+        render();
+      });
+
+      for (let j = 0; j < 48; j++) {
+        const slot = document.createElement("div");
+        slot.className = "week-view__time-slot";
+        dayBody.appendChild(slot);
+      }
+
+      const events = getEventsForDisplay(day);
+      for (const event of events) {
+        const chip = document.createElement("div");
+        chip.className = `event-chip color-${event.color || 'default'}`;
+        chip.textContent = event.text;
+        chip.draggable = true;
+        chip.addEventListener("dragstart", (ev) => {
+          ev.dataTransfer.setData("text/plain", JSON.stringify({ id: event.id, originIso: toISODateString(day) }));
+        });
+
+        if (event.isAllDay) {
+          allDayContainer.appendChild(chip);
+          continue;
+        }
+        
+        if (!event.startTime) continue;
+
+        const eventStart = event.startTime.hour * 60 + event.startTime.minute;
+        const eventEnd = event.endTime ? event.endTime.hour * 60 + event.endTime.minute : eventStart + 30;
+        const duration = Math.max(30, eventEnd - eventStart); // Ensure a minimum duration
+
+        chip.style.top = `${(eventStart / (24 * 60)) * 100}%`;
+        chip.style.height = `${(duration / (24 * 60)) * 100}%`;
+        dayBody.appendChild(chip);
+      }
+
+      dayWrapper.appendChild(dayBody);
+      daysContainer.appendChild(dayWrapper);
+    }
+
+    weekViewEl.appendChild(timeline);
+    weekViewEl.appendChild(daysContainer);
   }
 
   function renderYearView() {
@@ -420,9 +625,9 @@
       const events = getEventsForDisplay(day).slice(0, 2);
       for (const e of events) {
         const chip = document.createElement("span");
-        chip.className = "event-chip";
-        const h = e.timeHour;
-        const m = e.timeMinute;
+        chip.className = `event-chip color-${e.color || 'default'}`;
+        const h = e.startTime ? e.startTime.hour : null;
+        const m = e.startTime ? e.startTime.minute : null;
         const time = typeof h === "number" ? `${String(h).padStart(2, "0")}:${String(m || 0).padStart(2, "0")} ` : "";
         chip.title = `${time}${e.text}`;
         chip.textContent = `${time}${e.text}`;
@@ -464,26 +669,14 @@
   });
 
   prevBtn.addEventListener("click", () => {
-    gridEl.classList.add("slide-out-right");
-    setTimeout(() => {
-      const d = state.visibleMonthDate;
-      state.visibleMonthDate = new Date(d.getFullYear(), d.getMonth() - 1, 1);
-      render();
-      gridEl.classList.remove("slide-out-right");
-      gridEl.classList.add("slide-in-left");
-      setTimeout(() => gridEl.classList.remove("slide-in-left"), 300);
-    }, 300);
+    const d = state.visibleMonthDate;
+    state.visibleMonthDate = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+    render();
   });
   nextBtn.addEventListener("click", () => {
-    gridEl.classList.add("slide-out-left");
-    setTimeout(() => {
-      const d = state.visibleMonthDate;
-      state.visibleMonthDate = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-      render();
-      gridEl.classList.remove("slide-out-left");
-      gridEl.classList.add("slide-in-right");
-      setTimeout(() => gridEl.classList.remove("slide-in-right"), 300);
-    }, 300);
+    const d = state.visibleMonthDate;
+    state.visibleMonthDate = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    render();
   });
   todayBtn.addEventListener("click", () => {
     const today = new Date();
@@ -498,38 +691,12 @@
     render();
   });
 
-  function goToSpecificDate(isoStr) {
-    if (!isoStr) return;
-    const [yStr, mStr, dStr] = isoStr.split("-");
-    const y = Number(yStr);
-    const m = Number(mStr) - 1;
-    const d = Number(dStr);
-    if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return;
-    const target = new Date(y, m, d);
-    if (Number.isNaN(target.getTime())) return;
-    state.visibleMonthDate = getStartOfMonth(target);
-    state.selectedDate = target;
-    render();
-  }
 
-  if (goToDateBtn && goToDateInput) {
-    goToDateBtn.addEventListener("click", () => {
-      goToSpecificDate(goToDateInput.value);
-    });
-    goToDateInput.addEventListener("change", () => {
-      goToSpecificDate(goToDateInput.value);
-    });
-    goToDateInput.addEventListener("keydown", (ev) => {
-      if (ev.key === "Enter") {
-        ev.preventDefault();
-        goToSpecificDate(goToDateInput.value);
-      }
-    });
-  }
   // Sidebar form removed - now using modal only
 
   // View switching
   if (viewMonthBtn) viewMonthBtn.addEventListener("click", () => { state.view = "month"; render(); });
+  if (viewWeekBtn) viewWeekBtn.addEventListener("click", () => { state.view = "week"; render(); });
   if (viewDayBtn) viewDayBtn.addEventListener("click", () => { state.view = "day"; render(); dayViewEl.scrollIntoView({ behavior: 'smooth' }); });
   if (viewYearBtn) viewYearBtn.addEventListener("click", () => { state.view = "year"; render(); yearViewEl.scrollIntoView({ behavior: 'smooth' }); });
 
@@ -579,6 +746,31 @@
     document.body.style.overflow = "";
     document.body.classList.remove("modal-open");
   }
+  function openModalForEditing(event) {
+    closeDayModal(); // Close the list view modal
+    setTimeout(() => { // Allow the first modal to close
+      openDayModal(new Date(event.origin + "T00:00:00"));
+
+      // Pre-fill the form with the event's data
+      editingEventId.value = event.id;
+      dayModalInput.value = event.text;
+      dayModalAllDay.checked = event.isAllDay || false;
+      dayModalColor.value = event.color || 'default';
+      dayModalRepeat.value = event.repeat || 'none';
+
+      if (event.startTime) {
+        dayModalStartTime.value = `${String(event.startTime.hour).padStart(2, "0")}:${String(event.startTime.minute || 0).padStart(2, "0")}`;
+      }
+      if (event.endTime) {
+        dayModalEndTime.value = `${String(event.endTime.hour).padStart(2, "0")}:${String(event.endTime.minute || 0).padStart(2, "0")}`;
+      }
+
+      // Trigger the change handler for the all-day checkbox to disable time inputs if needed
+      dayModalAllDay.dispatchEvent(new Event('change'));
+      dayModalForm.querySelector("button[type='submit']").textContent = "Save Changes";
+    }, 100);
+  }
+
   function renderDayModal(date) {
     const iso = toISODateString(date);
     const hijriDate = gregorianToHijri(date);
@@ -600,13 +792,13 @@
           time = `${start}${end}`;
         }
         text.textContent = `${time}${e.text}` + (e.repeat && e.repeat !== "none" ? " ⟳" : "");
-        text.className = "event-chip";
+        text.className = `event-chip color-${e.color || 'default'}`;
         const editBtn = document.createElement("button");
         editBtn.className = "btn";
         editBtn.type = "button";
         editBtn.textContent = "Edit";
         editBtn.addEventListener("click", () => {
-          openEditPrompt(e, iso);
+          openModalForEditing(e);
         });
         const removeBtn = document.createElement("button");
         removeBtn.className = "btn btn--danger";
@@ -648,9 +840,10 @@
       ev.preventDefault();
       const text = dayModalInput.value.trim();
       if (!text) return;
+
+      const id = editingEventId.value;
       const iso = toISODateString(state.selectedDate);
       const isAllDay = dayModalAllDay.checked;
-
       let startTime = null;
       let endTime = null;
 
@@ -665,10 +858,19 @@
         }
       }
 
-      const repeat = dayModalRepeat && dayModalRepeat.value ? dayModalRepeat.value : "none";
-      addEvent(iso, text, { isAllDay, startTime, endTime, repeat });
+      const color = dayModalColor.value;
+      const repeat = dayModalRepeat.value;
+
+      if (id) {
+        // Update existing event
+        updateEvent(iso, id, { text, isAllDay, startTime, endTime, color, repeat });
+      } else {
+        // Add new event
+        addEvent(iso, text, { isAllDay, startTime, endTime, color, repeat });
+      }
+
+      closeDayModal();
       render();
-      renderDayModal(state.selectedDate);
     });
   }
 
@@ -782,66 +984,49 @@
   setInterval(updateClock, 1000);
   updateClock(); // initial call
 
-  async function syncIndonesianHolidays() {
-    const year = state.visibleMonthDate.getFullYear();
-    const syncedYearsKey = "synced_holiday_years";
+  function clearAndFinalizeHolidays() {
+    const allEvents = loadAllEvents();
+    let duplicatesRemoved = 0;
+    let holidaysUpdated = 0;
 
-    try {
-      const syncedYears = JSON.parse(localStorage.getItem(syncedYearsKey) || "[]");
-      if (syncedYears.includes(year)) {
-        alert(`Holidays for ${year} have already been synced.`);
-        return;
-      }
+    for (const isoDate in allEvents) {
+      const eventsOnDate = allEvents[isoDate];
+      if (eventsOnDate.length === 0) continue;
 
-      const response = await fetch(`https://libur.deno.dev/api?year=${year}`);
-      if (!response.ok) {
-        alert(`Failed to fetch Indonesian holidays for ${year}.`);
-        return;
-      }
+      const uniqueEvents = new Map();
+      for (const event of eventsOnDate) {
+        // Check if it looks like a holiday by checking for a date in the name (e.g., "1 Muharram")
+        const isHoliday = /\d/.test(event.text) && /\s/.test(event.text);
 
-      const holidays = await response.json();
-      if (!Array.isArray(holidays) || holidays.length === 0) {
-        alert(`No holiday data found for ${year}. The API may not have data for this year yet.`);
-        return;
-      }
-
-      const allEvents = loadAllEvents();
-      let newEventsAdded = 0;
-
-      holidays.forEach(holiday => {
-        const isoDate = holiday.date;
-        const eventText = holiday.name;
-        const eventsOnDate = getEventsForDate(isoDate, allEvents);
-        const alreadyExists = eventsOnDate.some(e => e.text === eventText && e.isAllDay);
-
-        if (!alreadyExists) {
-          addEvent(isoDate, eventText, { isAllDay: true });
-          newEventsAdded++;
-        }
-      });
-
-      if (newEventsAdded > 0) {
-        alert(`Successfully added ${newEventsAdded} new holiday(s) for ${year}.`);
-        syncedYears.push(year);
-        localStorage.setItem(syncedYearsKey, JSON.stringify(syncedYears));
-        render();
-      } else {
-        alert(`Holiday events for ${year} are already up to date.`);
-        // Still mark as synced even if no new events were added
-        if (!syncedYears.includes(year)) {
-          syncedYears.push(year);
-          localStorage.setItem(syncedYearsKey, JSON.stringify(syncedYears));
+        if (isHoliday) {
+          const existing = uniqueEvents.get(event.text);
+          if (!existing) {
+            // First time seeing this holiday text, add it and ensure it's red.
+            if (event.color !== 'red') {
+              event.color = 'red';
+              holidaysUpdated++;
+            }
+            uniqueEvents.set(event.text, event);
+          } else {
+            // Duplicate holiday text found, just count it for removal.
+            duplicatesRemoved++;
+          }
+        } else {
+          // It's a user-created event, so just add it.
+          uniqueEvents.set(event.id, event); // Use ID to ensure user events are always unique
         }
       }
-    } catch (error) {
-      console.error(`Error syncing Indonesian holidays for ${year}:`, error);
-      alert(`An error occurred while syncing holidays for ${year}.`);
+
+      const newEventsList = Array.from(uniqueEvents.values());
+      allEvents[isoDate] = newEventsList;
+    }
+
+    saveAllEvents(allEvents);
+    if (duplicatesRemoved > 0 || holidaysUpdated > 0) {
+      alert(`Cleanup complete!\nRemoved: ${duplicatesRemoved} duplicate holiday(s).\nUpdated: ${holidaysUpdated} holiday(s) to the correct color.`);
     }
   }
 
-  if (syncBtn) {
-    syncBtn.addEventListener("click", syncIndonesianHolidays);
-  }
-
+  clearAndFinalizeHolidays();
   render();
 })();

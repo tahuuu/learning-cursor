@@ -32,6 +32,7 @@
             <h2 id="calendar-heading" class="calendar__title" aria-live="polite" aria-atomic="true"></h2>
             <div class="view-switcher">
               <button id="viewMonthBtn" class="btn" type="button" aria-label="Month view">Month</button>
+              <button id="viewWeekBtn" class="btn" type="button" aria-label="Week view">Week</button>
               <button id="viewDayBtn" class="btn" type="button" aria-label="Day view">Day</button>
               <button id="viewYearBtn" class="btn" type="button" aria-label="Year view">Year</button>
             </div>
@@ -39,9 +40,8 @@
           <div class="toolbar__right">
             <label class="visually-hidden" for="jumpToMonth">Jump to month</label>
             <input id="jumpToMonth" type="month" class="month-input" aria-label="Jump to month" />
-            <label class="visually-hidden" for="goToDate">Go to date</label>
-            <input id="goToDate" type="date" class="month-input" aria-label="Go to date" />
-            <button id="goToDateBtn" class="btn btn--primary" type="button" aria-label="Go to the selected date">Go</button>
+
+            <input id="searchInput" class="input" type="search" placeholder="Search events" aria-label="Search events" />
           </div>
         </div>
 
@@ -58,6 +58,7 @@
         <div id="calendarGrid" class="calendar__grid" role="grid" aria-readonly="true" aria-labelledby="calendar-heading"></div>
 
         <div id="dayView" class="day-view" hidden></div>
+        <div id="weekView" class="week-view" hidden></div>
         <div id="yearView" class="year-view" hidden></div>
       </section>
 
@@ -78,20 +79,31 @@
             <div class="form-group">
               <label for="dayModalInput">Event Title</label>
               <input id="dayModalInput" class="input" type="text" placeholder="Event title (optional time in title)" aria-label="Event text" required />
+              <input type="hidden" id="editingEventId" />
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label for="dayModalStartTime">Start Time</label>
-                <input id="dayModalStartTime" class="input" type="time" aria-label="Event start time" />
+                <input id="dayModalStartTime" class="input" type="time" step="60" aria-label="Event start time" />
               </div>
               <div class="form-group">
                 <label for="dayModalEndTime">End Time</label>
-                <input id="dayModalEndTime" class="input" type="time" aria-label="Event end time" />
+                <input id="dayModalEndTime" class="input" type="time" step="60" aria-label="Event end time" />
               </div>
             </div>
             <div class="form-group">
               <input type="checkbox" id="dayModalAllDay" />
               <label for="dayModalAllDay">All Day</label>
+            </div>
+            <div class="form-group">
+              <label for="dayModalColor">Color</label>
+              <select id="dayModalColor" class="input" aria-label="Event color">
+                <option value="default">Default</option>
+                <option value="red">Red</option>
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+                <option value="purple">Purple</option>
+              </select>
             </div>
             <div class="form-group">
               <label for="dayModalRepeat">Repeat</label>
