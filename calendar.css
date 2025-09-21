@@ -1,21 +1,49 @@
 :root {
-  /* Friendly dark mode (Cursor-like) + CSS doc syntax vibes */
-  --bg: #0b0f14;
-  --surface: #11161d;
-  --surface-2: #161c25;
-  --text: #e6edf3;        /* default text */
-  --muted: #9aa7b3;       /* comments */
-  --accent-1: #7aa2ff;    /* property */
-  --accent-2: #7ce3ff;    /* value */
-  --accent-3: #c792ea;    /* selector */
+  --bg-dark: #0b0f14;
+  --surface-dark: #11161d;
+  --surface-2-dark: #161c25;
+  --text-dark: #e6edf3;
+  --muted-dark: #9aa7b3;
+  --accent-1-dark: #7aa2ff;
+  --accent-2-dark: #7ce3ff;
+  --accent-3-dark: #c792ea;
+  --primary-contrast-dark: #0b0f14;
+  --danger-dark: #ff8692;
+  --danger-contrast-dark: #2b0e0e;
+  --border-color-dark: #222b36;
+  --border-color-dashed-dark: #223048;
+
+  --bg-light: #ffffff;
+  --surface-light: #f8f9fa;
+  --surface-2-light: #e9ecef;
+  --text-light: #212529;
+  --muted-light: #6c757d;
+  --accent-1-light: #007bff;
+  --accent-2-light: #17a2b8;
+  --accent-3-light: #6f42c1;
+  --primary-contrast-light: #ffffff;
+  --danger-light: #dc3545;
+  --danger-contrast-light: #ffffff;
+  --border-color-light: #dee2e6;
+  --border-color-dashed-light: #ced4da;
+
+  --bg: var(--bg-dark);
+  --surface: var(--surface-dark);
+  --surface-2: var(--surface-2-dark);
+  --text: var(--text-dark);
+  --muted: var(--muted-dark);
+  --accent-1: var(--accent-1-dark);
+  --accent-2: var(--accent-2-dark);
+  --accent-3: var(--accent-3-dark);
   --primary: var(--accent-1);
-  --primary-contrast: #0b0f14;
+  --primary-contrast: var(--primary-contrast-dark);
   --ring: #3b6dcc;
-  --danger: #ff8692;
-  --danger-contrast: #2b0e0e;
-  --border-color: #222b36;
-  --border-color-dashed: #223048;
-  --text-contrast: #f1f5f9;
+  --danger: var(--danger-dark);
+  --danger-contrast: var(--danger-contrast-dark);
+  --border-color: var(--border-color-dark);
+  --border-color-dashed: var(--border-color-dashed-dark);
+  --text-contrast: var(--text-dark);
+
   --event-red: #ff8692;
   --event-blue: #7aa2ff;
   --event-green: #82e0aa;
@@ -23,21 +51,20 @@
 }
 
 body.light-mode {
-  --bg: #f8f9fa;
-  --surface: #ffffff;
-  --surface-2: #e9ecef;
-  --text: #212529;
-  --muted: #6c757d;
-  --accent-1: #007bff;
-  --accent-2: #17a2b8;
-  --accent-3: #6f42c1;
-  --primary-contrast: #ffffff;
-  --ring: #80bdff;
-  --danger: #dc3545;
-  --danger-contrast: #ffffff;
-  --border-color: #dee2e6;
-  --border-color-dashed: #ced4da;
-  --text-contrast: #000000;
+  --bg: var(--bg-light);
+  --surface: var(--surface-light);
+  --surface-2: var(--surface-2-light);
+  --text: var(--text-light);
+  --muted: var(--muted-light);
+  --accent-1: var(--accent-1-light);
+  --accent-2: var(--accent-2-light);
+  --accent-3: var(--accent-3-light);
+  --primary-contrast: var(--primary-contrast-light);
+  --danger: var(--danger-light);
+  --danger-contrast: var(--danger-contrast-light);
+  --border-color: var(--border-color-light);
+  --border-color-dashed: var(--border-color-dashed-light);
+  --text-contrast: var(--text-light);
 }
 
 * { box-sizing: border-box; }
@@ -173,11 +200,6 @@ body.modal-open .calendar {
   color: var(--primary-contrast);
 }
 
-.day-cell--selected .event-chip {
-  background: rgba(255, 255, 255, 0.2);
-  color: var(--primary-contrast);
-}
-
 .pill {
   display: inline-flex;
   align-items: center;
@@ -193,8 +215,7 @@ body.modal-open .calendar {
   display: block;
   background: var(--surface-2);
   color: var(--accent-2);
-  padding: 4px 6px;
-  border-radius: var(--border-radius-md);
+  border-radius: 8px;
   font-size: 12px;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -249,7 +270,7 @@ body.modal-open .calendar {
 .form-row { display: flex; gap: 8px; margin: 8px 0; }
 .form-row .input { flex: 1; }
 
-.btn { appearance: none; border: 1px solid var(--border-color)  border-radius: 20px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+.btn { appearance: none; border: 1px solid var(--border-color);  border-radius: 20px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
 .btn:hover { border-color: var(--ring); background: var(--surface-2); }
 .btn:focus { outline: 2px solid var(--ring); outline-offset: 2px; }
 .btn--primary { background: var(--primary); color: var(--primary-contrast); border-color: transparent; }
@@ -271,7 +292,7 @@ body.modal-open .calendar {
   border: 1px solid var(--border-color);
   background: var(--bg);
   color: var(--text);
-  border-radius: var(--border-radius-md);
+  border-radius: 8px;
   padding: 8px 10px;
   font-size: 14px;
 }
@@ -447,7 +468,8 @@ body.modal-open .calendar {
 .theme-switch {
   width: 50px;
   height: 25px;
-  background-color: var(--surface-2);
+  background-color: var(--surface);
+  border: 1px solid var(--border-color);
   border-radius: 999px;
   cursor: pointer;
   position: relative;
