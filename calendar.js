@@ -228,6 +228,9 @@
   const dayModalColor = document.getElementById("dayModalColor");
   const editingEventId = document.getElementById("editingEventId");
   const searchInput = document.getElementById("searchInput");
+  const settingsBtn = document.getElementById("settingsBtn");
+  const settingsModal = document.getElementById("settingsModal");
+  const closeSettingsModalBtn = document.getElementById("closeSettingsModal");
 
   const state = {
     visibleMonthDate: getStartOfMonth(new Date()),
@@ -833,6 +836,18 @@
     });
     window.addEventListener("keydown", (ev) => {
       if (!dayModal.hasAttribute("hidden") && ev.key === "Escape") closeDayModal();
+    });
+  }
+
+  if (settingsBtn) {
+    settingsBtn.addEventListener("click", () => {
+      settingsModal.removeAttribute("hidden");
+    });
+  }
+
+  if (closeSettingsModalBtn) {
+    closeSettingsModalBtn.addEventListener("click", () => {
+      settingsModal.setAttribute("hidden", "");
     });
   }
   if (dayModalForm && dayModalInput) {
