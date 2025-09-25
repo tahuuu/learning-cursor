@@ -14,6 +14,12 @@
     </header>
 
     <main class="app-main" aria-label="Calendar" id="app-root">
+      <div class="theme-toggle-container">
+        <div id="theme-toggle" class="theme-switch">
+          <div class="theme-switch__handle"></div>
+        </div>
+        <span id="theme-label" class="theme-label"></span>
+      </div>
 
       <section class="calendar" aria-labelledby="calendar-heading">
         <div class="calendar__toolbar">
@@ -22,7 +28,6 @@
             <button id="todayBtn" class="btn" aria-label="Go to today">Today</button>
             <button id="syncBtn" class="btn" aria-label="Sync Indonesian Holidays">Sync Holidays</button>
             <button id="nextMonthBtn" class="btn" aria-label="Next month">▶</button>
-            <button id="settingsBtn" class="btn" aria-label="Settings">⚙️</button>
           </div>
           <div class="toolbar__center">
             <h2 id="calendar-heading" class="calendar__title" aria-live="polite" aria-atomic="true"></h2>
@@ -69,15 +74,6 @@
           <button id="closeSettingsModal" class="btn btn--ghost" aria-label="Close">✕</button>
         </div>
         <div class="modal__body">
-          <div class="form-group">
-            <label>Theme</label>
-            <div class="theme-toggle-container">
-              <div id="theme-toggle" class="theme-switch">
-                <div class="theme-switch__handle"></div>
-              </div>
-              <span id="theme-label" class="theme-label"></span>
-            </div>
-          </div>
           <div class="form-group">
             <label>Data Management</label>
             <!-- Placeholder for Import/Export buttons -->
